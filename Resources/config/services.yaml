@@ -1,0 +1,4 @@
+services:
+    Goulaheau\RestBundle\EventListener\RestEntitySubscriber:
+        tags:
+            - { name: doctrine.event_subscriber }
