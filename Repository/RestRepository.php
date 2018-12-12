@@ -2,6 +2,8 @@
 
 namespace Goulaheau\RestBundle\Repository;
 
-abstract class RestRepository
+use Doctrine\ORM\EntityRepository;
+
+class RestRepository extends EntityRepository
 {
 }

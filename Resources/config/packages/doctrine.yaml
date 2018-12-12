@@ -1,0 +1,3 @@
+doctrine:
+    orm:
+        default_repository_class: Goulaheau\RestBundle\Repository\RestRepository
