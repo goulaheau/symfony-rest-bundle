@@ -3,6 +3,7 @@
 namespace Goulaheau\RestBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * Class RestEntity
@@ -16,27 +17,23 @@ abstract class RestEntity
      * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
+     * @Groups({"read", "update"})
      */
     protected $id;
 
     /**
      * @var \DateTime
      * @ORM\Column(type="datetime", nullable=true)
+     * @Groups({"read"})
      */
     protected $createdAt;
 
     /**
      * @var \DateTime
      * @ORM\Column(type="datetime", nullable=true)
+     * @Groups({"read"})
      */
     protected $updatedAt;
-
-    /**
-     * RestEntity constructor.
-     */
-    public function __construct()
-    {
-    }
 
     /**
      * @return int

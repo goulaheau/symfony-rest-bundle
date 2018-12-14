@@ -1,8 +1,15 @@
 services:
-    get_set_method_normalizer:
-        class: Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer
-        public: false
-        tags: [serializer.normalizer]
+#    get_set_method_normalizer:
+#        class: Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer
+#        public: false
+#        tags: [serializer.normalizer]
+
+#    Goulaheau\RestBundle\Normalizer\EntityNormalizer:
+#        public: false
+#        autowire: true
+#        autoconfigure: true
+#        tags:
+#            - { name: serializer.normalizer }
 
     Goulaheau\RestBundle\EventListener\RestEntitySubscriber:
         tags:
