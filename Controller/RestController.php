@@ -2,25 +2,16 @@
 
 namespace Goulaheau\RestBundle\Controller;
 
-use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\ORM\EntityManagerInterface;
-use Goulaheau\RestBundle\Normalizer\EntityNormalizer;
 use Goulaheau\RestBundle\Repository\RestRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
-use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactory;
-use Symfony\Component\Serializer\Mapping\Loader\AnnotationLoader;
-use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -63,83 +54,102 @@ abstract class RestController extends AbstractController
      * @param string                 $entityClass
      * @param RestRepository         $repository
      * @param EntityManagerInterface $manager
-     * @param SerializerInterface    $serializer
      * @param ValidatorInterface     $validator
-     * @throws \Doctrine\Common\Annotations\AnnotationException
+     * @param SerializerInterface    $serializer
      */
     public function __construct(
         string $entityClass,
         RestRepository $repository,
         EntityManagerInterface $manager,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        SerializerInterface $serializer
     ) {
         $this->entityClass = $entityClass;
         $this->repository = $repository;
         $this->manager = $manager;
         $this->validator = $validator;
-
-        $this->serializer = $this->createSerializer();
+        $this->serializer = $serializer;
     }
 
     /**
      * @Route("", methods={"GET"})
      */
-    public function search(): ?JsonResponse
+    public function listEntities(): ?JsonResponse
     {
         $entities = $this->repository->findAll();
 
-        return $this->normalizeAndJson($entities);
+        $entities = $this->normalize($entities);
+
+        return $this->json($entities);
     }
 
     /**
      * @Route("/{id}", methods={"GET"}, requirements={"id"="\d+"})
      */
-    public function find(string $id): ?JsonResponse
+    public function getEntity(string $id): ?JsonResponse
     {
         $entity = $this->repository->find($id);
 
         if (!$entity) {
-            throw $this->createNotFoundException();
+            return $this->json(null, Response::HTTP_NOT_FOUND);
         }
 
-        return $this->normalizeAndJson($entity);
+        $entity = $this->normalize($entity);
+
+        return $this->json($entity, Response::HTTP_CREATED);
     }
 
     /**
      * @Route("", methods={"POST"})
      */
-    public function create(Request $request): ?JsonResponse
+    public function createEntity(Request $request): ?JsonResponse
     {
         $entity = $this->deserialize($request->getContent());
+
+        $errors = $this->validate($entity);
+
+        if (count($errors) > 0) {
+            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $this->manager->persist($entity);
         $this->manager->flush();
 
-        return $this->normalizeAndJson($entity);
+        $entity = $this->normalize($entity);
+
+        return $this->json($entity, Response::HTTP_CREATED);
     }
 
     /**
      * @Route("/{id}", methods={"PUT"}, requirements={"id"="\d+"})
      */
-    public function update(string $id, Request $request): ?JsonResponse
+    public function updateEntity(string $id, Request $request): ?JsonResponse
     {
         $entity = $this->repository->find($id);
 
         if (!$entity) {
-            throw $this->createNotFoundException();
+            return $this->json(null, Response::HTTP_NOT_FOUND);
         }
 
         $this->deserialize($request->getContent(), $entity);
 
+        $errors = $this->validate($entity);
+
+        if (count($errors) > 0) {
+            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+        }
+
         $this->manager->flush();
 
-        return $this->normalizeAndJson($entity);
+        $entity = $this->validate($entity);
+
+        return $this->json($entity);
     }
 
     /**
      * @Route("/{id}", methods={"DELETE"}, requirements={"id"="\d+"})
      */
-    public function delete(string $id): ?JsonResponse
+    public function deleteEntity(string $id): ?JsonResponse
     {
         $entity = $this->repository->find($id);
 
@@ -150,45 +160,53 @@ abstract class RestController extends AbstractController
         $this->manager->remove($entity);
         $this->manager->flush();
 
-        return $this->normalizeAndJson([]);
+        return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 
     /**
-     * TODO: Utiliser JMS/Serializer
-     * @return Serializer
-     * @throws \Doctrine\Common\Annotations\AnnotationException
+     * @param $entity
+     *
+     * @return array
      */
-    protected function createSerializer(): Serializer
+    protected function validate($entity)
     {
-        $classMetadataFactory = new ClassMetadataFactory(new AnnotationLoader(new AnnotationReader()));
+        $errors = $this->validator->validate($entity);
 
-        $normalizers = [new EntityNormalizer($this->manager, $classMetadataFactory), new GetSetMethodNormalizer($classMetadataFactory)];
-        $encoders = [new JsonEncoder()];
+        $dataErrors = [];
 
-        return new Serializer($normalizers, $encoders);
+        /** @var ConstraintViolation $error */
+        foreach ($errors as $error) {
+            if (!isset($dataErrors[$error->getPropertyPath()])) {
+                $dataErrors[$error->getPropertyPath()] = [];
+            }
+
+            $dataErrors[$error->getPropertyPath()][] = $error->getMessage();
+        }
+
+        return $dataErrors;
     }
 
     /**
      * @param $data
-     * @return JsonResponse
-     */
-    protected function normalizeAndJson($data)
-    {
-        return $this->json($this->normalize($data));
-    }
-
-    /**
-     * @param $data
+     *
      * @return array|bool|float|int|mixed|string
      */
     protected function normalize($data)
     {
-        return $this->serializer->normalize($data, null, ['groups' => 'read']);
+        // TODO: use attributes from query
+
+        $context = [
+            // 'attributes' => [],
+            'groups' => 'read',
+        ];
+
+        return $this->serializer->normalize($data, null, $context);
     }
 
     /**
      * @param      $data
      * @param null $toEntity
+     *
      * @return object
      */
     protected function deserialize($data, $toEntity = null)
