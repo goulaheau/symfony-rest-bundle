@@ -3,6 +3,8 @@
 namespace Goulaheau\RestBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Goulaheau\RestBundle\Entity\QueryParams;
+use Goulaheau\RestBundle\Entity\RestEntity;
 use Goulaheau\RestBundle\Repository\RestRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -74,11 +76,13 @@ abstract class RestController extends AbstractController
     /**
      * @Route("", methods={"GET"})
      */
-    public function listEntities(): ?JsonResponse
+    public function listEntities(Request $request): ?JsonResponse
     {
+        $queryParams = new QueryParams($request->query->all());
+
         $entities = $this->repository->findAll();
 
-        $entities = $this->normalize($entities);
+        $entities = $this->normalize($entities, $queryParams);
 
         return $this->json($entities);
     }
@@ -109,7 +113,7 @@ abstract class RestController extends AbstractController
         $errors = $this->validate($entity);
 
         if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+            return $this->json($errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $this->manager->persist($entity);
@@ -136,7 +140,7 @@ abstract class RestController extends AbstractController
         $errors = $this->validate($entity);
 
         if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_BAD_REQUEST);
+            return $this->json($errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $this->manager->flush();
@@ -191,14 +195,24 @@ abstract class RestController extends AbstractController
      *
      * @return array|bool|float|int|mixed|string
      */
-    protected function normalize($data)
+    protected function normalize($data, QueryParams $queryParams = null)
     {
-        // TODO: use attributes from query
-
         $context = [
-            // 'attributes' => [],
-            'groups' => 'read',
+            'circular_reference_handler' => (function (RestEntity $object) {
+                return $object->getId();
+            }),
+            'groups' => 'read'
         ];
+
+        if ($queryParams) {
+            if ($queryParams->groups) {
+                $context['groups'] = $queryParams->groups;
+            }
+
+            if ($queryParams->attributes) {
+                $context['attributes'] = $queryParams->attributes;
+            }
+        }
 
         return $this->serializer->normalize($data, null, $context);
     }
