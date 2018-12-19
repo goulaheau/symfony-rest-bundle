@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraint;
  */
 class EntityExist extends Constraint
 {
-    public $message = 'The "{{ valueClass }}" was not found';
+    public $message = 'The {{ valueClass }} was not found';
 
     public function validatedBy()
     {

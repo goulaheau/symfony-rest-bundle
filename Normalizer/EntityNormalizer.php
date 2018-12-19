@@ -50,10 +50,9 @@ class EntityNormalizer extends ObjectNormalizer
 
     /**
      * @inheritDoc
-     * @throws \Doctrine\ORM\ORMException
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        return $this->manager->getReference($class, $data);
+        return $this->manager->find($class, $data) ?? new $class();
     }
 }

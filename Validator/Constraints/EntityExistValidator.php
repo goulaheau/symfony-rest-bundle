@@ -26,10 +26,8 @@ class EntityExistValidator extends ConstraintValidator
 
         $repository = $this->manager->getRepository($valueClass);
 
-        $this->manager->detach($value);
-
-        if (!$repository->find($value->getId())) {
-            $this->context->addViolation($constraint->message, ['%valueClass%' => $valueClass]);
+        if (!$value->getId() || !$repository->find($value->getId())) {
+            $this->context->addViolation($constraint->message, ['{{ valueClass }}' => $valueClass]);
         }
     }
 }

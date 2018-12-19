@@ -2,26 +2,24 @@
 
 namespace Goulaheau\RestBundle\Controller;
 
+use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Goulaheau\RestBundle\Entity\QueryParams;
-use Goulaheau\RestBundle\Entity\RestEntity;
-use Goulaheau\RestBundle\Repository\RestRepository;
+use Goulaheau\RestBundle\Service\RestService;
+use Goulaheau\RestBundle\Utils\RestQueryParams;
+use Goulaheau\RestBundle\Utils\RestSerializer;
+use Goulaheau\RestBundle\Utils\RestValidator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\Serializer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Class RestController
  *
  * @package Goulaheau\RestBundle\Controller
- *
- * @Rout
  */
 abstract class RestController extends AbstractController
 {
@@ -31,9 +29,9 @@ abstract class RestController extends AbstractController
     protected $entityClass;
 
     /**
-     * @var RestRepository
+     * @var RestService
      */
-    protected $repository;
+    protected $service;
 
     /**
      * @var EntityManagerInterface
@@ -51,23 +49,20 @@ abstract class RestController extends AbstractController
     protected $serializer;
 
     /**
-     * RestController constructor.
-     *
-     * @param string                 $entityClass
-     * @param RestRepository         $repository
-     * @param EntityManagerInterface $manager
-     * @param ValidatorInterface     $validator
-     * @param SerializerInterface    $serializer
+     * @var RestQueryParams
      */
+    protected $queryParams;
+
+
     public function __construct(
         string $entityClass,
-        RestRepository $repository,
-        EntityManagerInterface $manager,
-        ValidatorInterface $validator,
-        SerializerInterface $serializer
+        RestService $service,
+        ObjectManager $manager,
+        RestValidator $validator,
+        RestSerializer $serializer
     ) {
         $this->entityClass = $entityClass;
-        $this->repository = $repository;
+        $this->service = $service;
         $this->manager = $manager;
         $this->validator = $validator;
         $this->serializer = $serializer;
@@ -78,13 +73,79 @@ abstract class RestController extends AbstractController
      */
     public function listEntities(Request $request): ?JsonResponse
     {
-        $queryParams = new QueryParams($request->query->all());
+        $this->queryParams = new RestQueryParams($request->query->all());
 
-        $entities = $this->repository->findAll();
+        $entities = $this->service->search($this->queryParams);
 
-        $entities = $this->normalize($entities, $queryParams);
+        $entitiesFunctions = $this->getEntitiesFunctions($entities);
+        $repositoriesFunctions = $this->getRepositoriesFunctions();
 
-        return $this->json($entities);
+        $entities = $this->normalize($entities);
+        $entities = $this->mergeEntitiesFunctions($entities, $entitiesFunctions);
+
+        $json = [
+            '_entities' => $entities,
+            '_repositoryFunctions' => $repositoriesFunctions,
+        ];
+
+        return $this->json($json);
+    }
+
+    protected function getRepositoriesFunctions()
+    {
+        if (!$this->queryParams->repositoryFunctions) {
+            return null;
+        }
+
+        $data = [];
+
+        foreach ($this->queryParams->repositoryFunctions as $repositoryFunction) {
+            $function = $repositoryFunction['function'];
+            $parameters = $repositoryFunction['parameters'];
+
+            $data[$function] = $this->repository->$function(...$parameters);
+        }
+
+        return $data;
+    }
+
+    protected function mergeEntitiesFunctions($entities, $entitiesFunctions)
+    {
+        if ($entitiesFunctions) {
+            foreach ($entities as $key => $entity) {
+                if (isset($entitiesFunctions[$key])) {
+                    $entities[$key]['_entityFunctions'] = $entitiesFunctions[$key];
+                }
+            }
+        }
+
+        return $entities;
+    }
+
+    protected function getEntitiesFunctions($entities)
+    {
+        if (!$this->queryParams->entityFunctions) {
+            return null;
+        }
+
+        $data = [];
+        foreach ($entities as $entity) {
+            $entityData = [];
+
+            foreach ($this->queryParams->entityFunctions as $entityFunction) {
+                $function = $entityFunction['function'];
+                $parameters = $entityFunction['parameters'];
+
+                try {
+                    $entityData[$function] = $entity->$function(...$parameters);
+                } catch (\Exception $e) {
+                }
+            }
+
+            $data[] = $entityData;
+        }
+
+        return $data;
     }
 
     /**
@@ -145,7 +206,7 @@ abstract class RestController extends AbstractController
 
         $this->manager->flush();
 
-        $entity = $this->validate($entity);
+        $entity = $this->normalize($entity);
 
         return $this->json($entity);
     }
@@ -167,70 +228,18 @@ abstract class RestController extends AbstractController
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    /**
-     * @param $entity
-     *
-     * @return array
-     */
     protected function validate($entity)
     {
-        $errors = $this->validator->validate($entity);
-
-        $dataErrors = [];
-
-        /** @var ConstraintViolation $error */
-        foreach ($errors as $error) {
-            if (!isset($dataErrors[$error->getPropertyPath()])) {
-                $dataErrors[$error->getPropertyPath()] = [];
-            }
-
-            $dataErrors[$error->getPropertyPath()][] = $error->getMessage();
-        }
-
-        return $dataErrors;
+        return $this->validator->validate($entity);
     }
 
-    /**
-     * @param $data
-     *
-     * @return array|bool|float|int|mixed|string
-     */
-    protected function normalize($data, QueryParams $queryParams = null)
-    {
-        $context = [
-            'circular_reference_handler' => (function (RestEntity $object) {
-                return $object->getId();
-            }),
-            'groups' => 'read'
-        ];
-
-        if ($queryParams) {
-            if ($queryParams->groups) {
-                $context['groups'] = $queryParams->groups;
-            }
-
-            if ($queryParams->attributes) {
-                $context['attributes'] = $queryParams->attributes;
-            }
-        }
-
-        return $this->serializer->normalize($data, null, $context);
-    }
-
-    /**
-     * @param      $data
-     * @param null $toEntity
-     *
-     * @return object
-     */
     protected function deserialize($data, $toEntity = null)
     {
-        $context = ['groups' => 'update'];
+        return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
+    }
 
-        if ($toEntity) {
-            $context['object_to_populate'] = $toEntity;
-        }
-
-        return $this->serializer->deserialize($data, $this->entityClass, 'json', $context);
+    protected function normalize($data)
+    {
+        return $this->serializer->normalize($data, $this->queryParams);
     }
 }
