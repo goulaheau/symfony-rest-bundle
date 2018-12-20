@@ -2,19 +2,15 @@
 
 namespace Goulaheau\RestBundle\Controller;
 
-use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\ORM\EntityManagerInterface;
+use Goulaheau\RestBundle\Exception\RestException;
 use Goulaheau\RestBundle\Service\RestService;
-use Goulaheau\RestBundle\Utils\RestQueryParams;
+use Goulaheau\RestBundle\Utils\RestParams;
 use Goulaheau\RestBundle\Utils\RestSerializer;
-use Goulaheau\RestBundle\Utils\RestValidator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\Serializer;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Class RestController
@@ -34,132 +30,52 @@ abstract class RestController extends AbstractController
     protected $service;
 
     /**
-     * @var EntityManagerInterface
-     */
-    protected $manager;
-
-    /**
-     * @var ValidatorInterface
-     */
-    protected $validator;
-
-    /**
-     * @var Serializer
+     * @var RestSerializer
      */
     protected $serializer;
 
     /**
-     * @var RestQueryParams
+     * @var RestParams
      */
-    protected $queryParams;
+    protected $restParams;
 
-
-    public function __construct(
-        string $entityClass,
-        RestService $service,
-        ObjectManager $manager,
-        RestValidator $validator,
-        RestSerializer $serializer
-    ) {
+    public function __construct(string $entityClass, RestService $service, RestSerializer $serializer)
+    {
         $this->entityClass = $entityClass;
         $this->service = $service;
-        $this->manager = $manager;
-        $this->validator = $validator;
         $this->serializer = $serializer;
     }
 
     /**
      * @Route("", methods={"GET"})
      */
-    public function listEntities(Request $request): ?JsonResponse
+    public function searchEntities(Request $request): ?JsonResponse
     {
-        $this->queryParams = new RestQueryParams($request->query->all());
+        try {
+            $this->restParams = new RestParams($request->query->all());
 
-        $entities = $this->service->search($this->queryParams);
-
-        $entitiesFunctions = $this->getEntitiesFunctions($entities);
-        $repositoriesFunctions = $this->getRepositoriesFunctions();
-
-        $entities = $this->normalize($entities);
-        $entities = $this->mergeEntitiesFunctions($entities, $entitiesFunctions);
-
-        $json = [
-            '_entities' => $entities,
-            '_repositoryFunctions' => $repositoriesFunctions,
-        ];
-
-        return $this->json($json);
-    }
-
-    protected function getRepositoriesFunctions()
-    {
-        if (!$this->queryParams->repositoryFunctions) {
-            return null;
+            $entities = $this->service->search($this->restParams);
+            $entities = $this->normalize($entities);
+        } catch (\Exception $exception) {
+            return $this->exceptionHandler($exception);
         }
 
-        $data = [];
-
-        foreach ($this->queryParams->repositoryFunctions as $repositoryFunction) {
-            $function = $repositoryFunction['function'];
-            $parameters = $repositoryFunction['parameters'];
-
-            $data[$function] = $this->repository->$function(...$parameters);
-        }
-
-        return $data;
-    }
-
-    protected function mergeEntitiesFunctions($entities, $entitiesFunctions)
-    {
-        if ($entitiesFunctions) {
-            foreach ($entities as $key => $entity) {
-                if (isset($entitiesFunctions[$key])) {
-                    $entities[$key]['_entityFunctions'] = $entitiesFunctions[$key];
-                }
-            }
-        }
-
-        return $entities;
-    }
-
-    protected function getEntitiesFunctions($entities)
-    {
-        if (!$this->queryParams->entityFunctions) {
-            return null;
-        }
-
-        $data = [];
-        foreach ($entities as $entity) {
-            $entityData = [];
-
-            foreach ($this->queryParams->entityFunctions as $entityFunction) {
-                $function = $entityFunction['function'];
-                $parameters = $entityFunction['parameters'];
-
-                try {
-                    $entityData[$function] = $entity->$function(...$parameters);
-                } catch (\Exception $e) {
-                }
-            }
-
-            $data[] = $entityData;
-        }
-
-        return $data;
+        return $this->json($entities);
     }
 
     /**
      * @Route("/{id}", methods={"GET"}, requirements={"id"="\d+"})
      */
-    public function getEntity(string $id): ?JsonResponse
+    public function getEntity(string $id, Request $request): ?JsonResponse
     {
-        $entity = $this->repository->find($id);
+        try {
+            $this->restParams = new RestParams($request->query->all());
 
-        if (!$entity) {
-            return $this->json(null, Response::HTTP_NOT_FOUND);
+            $entity = $this->service->get($id);
+            $entity = $this->normalize($entity);
+        } catch (\Exception $exception) {
+            return $this->exceptionHandler($exception);
         }
-
-        $entity = $this->normalize($entity);
 
         return $this->json($entity, Response::HTTP_CREATED);
     }
@@ -169,18 +85,14 @@ abstract class RestController extends AbstractController
      */
     public function createEntity(Request $request): ?JsonResponse
     {
-        $entity = $this->deserialize($request->getContent());
+        try {
+            $this->restParams = new RestParams($request->query->all());
 
-        $errors = $this->validate($entity);
-
-        if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            $entity = $this->service->create($request->getContent());
+            $entity = $this->normalize($entity);
+        } catch (\Exception $exception) {
+            return $this->exceptionHandler($exception);
         }
-
-        $this->manager->persist($entity);
-        $this->manager->flush();
-
-        $entity = $this->normalize($entity);
 
         return $this->json($entity, Response::HTTP_CREATED);
     }
@@ -190,23 +102,14 @@ abstract class RestController extends AbstractController
      */
     public function updateEntity(string $id, Request $request): ?JsonResponse
     {
-        $entity = $this->repository->find($id);
+        try {
+            $this->restParams = new RestParams($request->query->all());
 
-        if (!$entity) {
-            return $this->json(null, Response::HTTP_NOT_FOUND);
+            $entity = $this->service->update($request->getContent(), $id);
+            $entity = $this->normalize($entity);
+        } catch (\Exception $exception) {
+            return $this->exceptionHandler($exception);
         }
-
-        $this->deserialize($request->getContent(), $entity);
-
-        $errors = $this->validate($entity);
-
-        if (count($errors) > 0) {
-            return $this->json($errors, Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        $this->manager->flush();
-
-        $entity = $this->normalize($entity);
 
         return $this->json($entity);
     }
@@ -216,30 +119,45 @@ abstract class RestController extends AbstractController
      */
     public function deleteEntity(string $id): ?JsonResponse
     {
-        $entity = $this->repository->find($id);
-
-        if (!$entity) {
-            throw $this->createNotFoundException();
+        try {
+            $this->service->delete($id);
+        } catch (\Exception $exception) {
+            return $this->exceptionHandler($exception);
         }
-
-        $this->manager->remove($entity);
-        $this->manager->flush();
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 
-    protected function validate($entity)
+    /**
+     * @param \Exception $exception
+     * @return JsonResponse
+     */
+    protected function exceptionHandler(\Exception $exception)
     {
-        return $this->validator->validate($entity);
+        switch (true) {
+            case $exception instanceof RestException:
+                return $this->json($exception->getData(), $exception->getStatus());
+            default:
+                return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
+    /**
+     * @param      $data
+     * @param null $toEntity
+     * @return object
+     */
     protected function deserialize($data, $toEntity = null)
     {
         return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
     }
 
+    /**
+     * @param $data
+     * @return array|bool|float|int|mixed|string
+     */
     protected function normalize($data)
     {
-        return $this->serializer->normalize($data, $this->queryParams);
+        return $this->serializer->normalize($data, $this->restParams);
     }
 }

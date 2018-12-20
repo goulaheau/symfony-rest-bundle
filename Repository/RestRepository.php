@@ -7,7 +7,7 @@ use Doctrine\Common\Persistence\ManagerRegistry;
 
 abstract class RestRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry, string $entityClass)
+    public function __construct(string $entityClass, ManagerRegistry $registry)
     {
         parent::__construct($registry, $entityClass);
     }

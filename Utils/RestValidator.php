@@ -22,7 +22,7 @@ class RestValidator
      *
      * @return array
      */
-    protected function validate($entity)
+    public function validate($entity)
     {
         $errors = $this->validator->validate($entity);
 

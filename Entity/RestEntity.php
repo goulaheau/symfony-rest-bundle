@@ -17,21 +17,21 @@ abstract class RestEntity
      * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
-     * @Groups({"read", "update"})
+     * @Groups({"readable", "editable"})
      */
     protected $id;
 
     /**
      * @var \DateTime
      * @ORM\Column(type="datetime", nullable=true)
-     * @Groups({"read"})
+     * @Groups({"readable"})
      */
     protected $createdAt;
 
     /**
      * @var \DateTime
      * @ORM\Column(type="datetime", nullable=true)
-     * @Groups({"read"})
+     * @Groups({"readable"})
      */
     protected $updatedAt;
 
