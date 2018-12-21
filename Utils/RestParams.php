@@ -2,49 +2,150 @@
 
 namespace Goulaheau\RestBundle\Utils;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Goulaheau\RestBundle\Utils\RestParams\Condition;
+use Goulaheau\RestBundle\Utils\RestParams\Join;
+use Goulaheau\RestBundle\Utils\RestParams\Method;
+use Goulaheau\RestBundle\Utils\RestParams\Pager;
+use Goulaheau\RestBundle\Utils\RestParams\Sort;
+
 class RestParams
 {
+    /**
+     * @var array
+     */
     protected $attributes = [];
 
+    /**
+     * @var array
+     */
     protected $groups = [];
 
-    protected $entityFunctions = [];
+    /**
+     * @var ArrayCollection|Method[]
+     */
+    protected $entityMethods;
 
-    protected $repositoryFunction = [];
+    /**
+     * @var Method
+     */
+    protected $repositoryMethod;
 
-    protected $sorts = [];
+    /**
+     * @var Pager
+     */
+    protected $pager;
 
-    protected $pager = [];
+    /**
+     * @var ArrayCollection|Sort[]
+     */
+    protected $sorts;
 
+    /**
+     * @var ArrayCollection|Join[]
+     */
+    protected $joins;
+
+    /**
+     * @var string
+     */
     protected $mode = 'and';
 
-    protected $conditions = [];
+    /**
+     * @var ArrayCollection|Condition[]
+     */
+    protected $conditions;
 
-
+    /**
+     * RestParams constructor.
+     *
+     * @param array $queryParams
+     */
     public function __construct($queryParams = [])
     {
-        if (isset($queryParams['_a'])) {
-            $this->setAttributes($queryParams['_a']);
-        }
+        $this->entityMethods = new ArrayCollection();
+        $this->sorts = new ArrayCollection();
+        $this->joins = new ArrayCollection();
+        $this->conditions = new ArrayCollection();
 
-        if (isset($queryParams['_g'])) {
-            $this->setGroups($queryParams['_g']);
-        }
+        foreach ($queryParams as $key => $value) {
+            switch ($key) {
+                case '_a':
+                    $this->setAttributes($value);
+                    break;
 
-        if (isset($queryParams['_ef'])) {
-            $functions = $queryParams['_ef'];
-            $params = isset($queryParams['_efp']) && is_array($queryParams['_efp']) ? $queryParams['_efp'] : [];
-            $this->setEntityFunctions($functions, $params);
-        }
+                case '_g':
+                    $this->setGroups($value);
+                    break;
 
-        if (isset($queryParams['_rf'])) {
-            $function = $queryParams['_rf'];
-            $params = isset($queryParams['_rfp']) && is_array($queryParams['_rfp']) ? $queryParams['_rfp'] : [];
-            $this->setRepositoryFunction($function, $params);
-        }
+                case '_em':
+                    $methods = explode(',', $value);
+                    $params = isset($queryParams['_emp']) && is_array($queryParams['_emp']) ? $queryParams['_emp'] : [];
 
-        if (isset($queryParams['_s'])) {
-            $this->setSorts($queryParams['_s']);
+                    foreach ($methods as $index => $name) {
+                        $this->addEntityMethod(new Method($name, $params[$index] ?? null));
+                    }
+
+                    break;
+
+                case '_emp':
+                    break;
+
+                case '_rm':
+                    $this->setRepositoryMethod(new Method($value, $queryParams['_rmp'] ?? null));
+                    break;
+
+                case '_rmp':
+                    break;
+
+                case '_p':
+                    $this->setPager(new Pager($value, $queryParams['_pp'] ?? null));
+                    break;
+
+                case '_pp':
+                    break;
+
+                case '_s':
+                    $sortParts = explode(',', $value);
+
+                    foreach ($sortParts as $part) {
+                        $property = $part;
+                        $order = 'ASC';
+
+                        if (strpos($property, '-') === 0) {
+                            $property = substr($property, 1);
+                            $order = 'DESC';
+                        }
+
+                        $this->addSort(new Sort($property, $order));
+                    }
+
+                    break;
+
+                case '_j':
+                    $joinParts = explode(',', $value);
+
+                    foreach ($joinParts as $joinType) {
+                        $joinType = explode('-', $joinType);
+
+                        if (count($joinType) === 2) {
+                            $this->addJoin(new Join($joinType[0], $joinType[1]));
+                        }
+                    }
+
+                    break;
+
+                case '_m':
+                    $this->setMode($value);
+                    break;
+
+                default:
+                    $propertyOperator = explode('-', $key);
+
+                    if (in_array(count($propertyOperator), [1, 2])) {
+                        $this->addCondition(new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null));
+                    }
+            }
         }
     }
 
@@ -58,10 +159,17 @@ class RestParams
 
     /**
      * @param string|array $attributes
+     *
      * @return self
      */
     public function setAttributes($attributes): self
     {
+        if ($attributes === null) {
+            $this->attributes = [];
+
+            return $this;
+        }
+
         if (is_array($attributes)) {
             $this->attributes = $attributes;
 
@@ -86,10 +194,17 @@ class RestParams
 
     /**
      * @param string|array $groups
+     *
      * @return self
      */
     public function setGroups($groups): self
     {
+        if ($groups === null) {
+            $this->groups = [];
+
+            return $this;
+        }
+
         if (is_array($groups)) {
             $this->groups = $groups;
 
@@ -102,111 +217,87 @@ class RestParams
     }
 
     /**
-     * @return array
+     * @return ArrayCollection|Method[]
      */
-    public function getEntityFunctions(): array
+    public function getEntityMethods()
     {
-        return $this->entityFunctions;
+        return $this->entityMethods;
     }
 
     /**
-     * @param string|array $functions
-     * @return self
+     * @param ArrayCollection|Method[] $entityMethods
+     *
+     * @return RestParams
      */
-    public function setEntityFunctions($functions, $params = []): self
+    public function setEntityMethods($entityMethods)
     {
-        if (is_array($functions)) {
-            $this->entityFunctions = $functions;
-
-            return $this;
-        }
-
-        $functions = explode(',', $functions);
-
-        foreach ($functions as $key => $function) {
-            $functions[$key] = [
-                'function' => $function,
-                'params' => isset($params[$key]) ? $params[$key] : [],
-            ];
-        }
-
-        $this->entityFunctions = $functions;
+        $this->entityMethods = $entityMethods;
 
         return $this;
     }
 
     /**
-     * @return array
-     */
-    public function getRepositoryFunction(): array
-    {
-        return $this->repositoryFunction;
-    }
-
-    /**
-     * @param       $function
-     * @param array $params
+     * @param Method $entityMethod
+     *
      * @return self
      */
-    public function setRepositoryFunction($function, $params = []): self
+    public function addEntityMethod($entityMethod)
     {
-        $this->repositoryFunction = [
-            'function' => $function,
-            'params' => $params,
-        ];
-
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getSorts(): array
-    {
-        return $this->sorts;
-    }
-
-    /**
-     * @param string|array $sorts
-     * @return self
-     */
-    public function setSorts($sorts): self
-    {
-        if (is_array($sorts)) {
-            $this->sorts = $sorts;
-
-            return $this;
-        }
-
-        $sorts = explode(',', $sorts);
-
-        foreach ($sorts as $sort) {
-            $order = 'asc';
-
-            if (strpos($sort, '-') === 0) {
-                $order = 'desc';
-                $sort = substr($sort, 1);
-            }
-
-            $this->sorts[$sort] = $order;
+        if (!$this->entityMethods->contains($entityMethod)) {
+            $this->entityMethods[] = $entityMethod;
         }
 
         return $this;
     }
 
     /**
-     * @return array
+     * @param Method $entityMethod
+     *
+     * @return self
      */
-    public function getPager(): array
+    public function removeEntityMethod($entityMethod)
+    {
+        if ($this->entityMethods->contains($entityMethod)) {
+            $this->entityMethods->removeElement($entityMethod);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Method
+     */
+    public function getRepositoryMethod()
+    {
+        return $this->repositoryMethod;
+    }
+
+    /**
+     * @param Method $repositoryMethod
+     *
+     * @return self
+     */
+    public function setRepositoryMethod($repositoryMethod)
+    {
+        $this->repositoryMethod = $repositoryMethod;
+
+        return $this;
+    }
+
+    /**
+     * @return Pager
+     */
+    public function getPager()
     {
         return $this->pager;
     }
 
     /**
-     * @param array $pager
-     * @return RestParams
+     * @param Pager $pager
+     *
+     * @return self
      */
-    public function setPager(array $pager): RestParams
+    public function setPager($pager)
     {
         $this->pager = $pager;
 
@@ -214,39 +305,167 @@ class RestParams
     }
 
     /**
-     * @return string
+     * @return ArrayCollection|Sort[]
      */
-    public function getMode(): string
+    public function getSorts()
+    {
+        return $this->sorts;
+    }
+
+    /**
+     * @param ArrayCollection|Sort[] $sorts
+     *
+     * @return RestParams
+     */
+    public function setSorts($sorts)
+    {
+        $this->sorts = $sorts;
+
+        return $this;
+    }
+
+    /**
+     * @param Sort $sort
+     *
+     * @return self
+     */
+    public function addSort($sort)
+    {
+        if (!$this->sorts->contains($sort)) {
+            $this->sorts[] = $sort;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param Sort $sort
+     *
+     * @return self
+     */
+    public function removeSort($sort)
+    {
+        if ($this->sorts->contains($sort)) {
+            $this->sorts->removeElement($sort);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getMode()
     {
         return $this->mode;
     }
 
     /**
-     * @param string $mode
+     * @param null|string $mode
+     *
      * @return RestParams
      */
-    public function setMode(string $mode): RestParams
+    public function setMode($mode = 'and')
     {
+        $mode = in_array($mode, ['and', 'or']) ? $mode : 'and';
+
         $this->mode = $mode;
 
         return $this;
     }
 
     /**
-     * @return array
+     * @return ArrayCollection|Join[]
      */
-    public function getConditions(): array
+    public function getJoins()
+    {
+        return $this->joins;
+    }
+
+    /**
+     * @param ArrayCollection|Join[] $joins
+     *
+     * @return RestParams
+     */
+    public function setJoins($joins)
+    {
+        $this->joins = $joins;
+
+        return $this;
+    }
+
+    /**
+     * @param Join $join
+     *
+     * @return self
+     */
+    public function addJoin($join)
+    {
+        if (!$this->joins->contains($join)) {
+            $this->joins[] = $join;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param Join $join
+     *
+     * @return self
+     */
+    public function removeJoin($join)
+    {
+        if ($this->joins->contains($join)) {
+            $this->joins->removeElement($join);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return ArrayCollection|Condition[]
+     */
+    public function getConditions()
     {
         return $this->conditions;
     }
 
     /**
-     * @param array $conditions
+     * @param ArrayCollection|Condition[] $conditions
+     *
      * @return RestParams
      */
-    public function setConditions(array $conditions): RestParams
+    public function setConditions($conditions)
     {
         $this->conditions = $conditions;
+
+        return $this;
+    }
+
+    /**
+     * @param Condition $condition
+     *
+     * @return self
+     */
+    public function addCondition($condition)
+    {
+        if (!$this->conditions->contains($condition)) {
+            $this->conditions[] = $condition;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param Condition $condition
+     *
+     * @return self
+     */
+    public function removeCondition($condition)
+    {
+        if ($this->conditions->contains($condition)) {
+            $this->conditions->removeElement($condition);
+        }
 
         return $this;
     }

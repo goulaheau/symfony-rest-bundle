@@ -3,6 +3,7 @@
 namespace Goulaheau\RestBundle\Utils;
 
 use Goulaheau\RestBundle\Entity\RestEntity;
+use Goulaheau\RestBundle\Utils\RestParams\Method;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -37,28 +38,29 @@ class RestSerializer
     }
 
     /**
-     * @param                 $data
-     * @param RestParams      $restParams
+     * @param mixed $data
+     * @param array $groups
+     * @param array $attributes
+     * @param Method[] $entityMethods
      * @return array|bool|float|int|mixed|string
      */
-    public function normalize($data, RestParams $restParams = null)
+    public function normalize($data, $attributes = null, $groups = null, $entityMethods = null)
     {
-        $context = $this->setNormalizeContext($this->normalizeContext, $restParams);
+        $context = $this->setNormalizeContext($this->normalizeContext, $attributes, $groups);
 
         $dataNormalized = $this->serializer->normalize($data, null, $context);
-        $dataNormalized = $this->mergeEntitiesFunctions($data, $dataNormalized, $restParams);
+
+        if ($entityMethods && count($entityMethods) > 0) {
+            $dataNormalized = $this->mergeEntitiesMethods($data, $dataNormalized, $entityMethods);
+        }
 
         return $dataNormalized;
     }
 
-    protected function mergeEntitiesFunctions($data, $dataNormalized, RestParams $restParams)
+    protected function mergeEntitiesMethods($data, $dataNormalized, $entityMethods)
     {
-        if (!$restParams || !$restParams->getEntityFunctions()) {
-            return $dataNormalized;
-        }
-
         if (!is_array($data)) {
-            return $this->mergeEntityFunctions($data, $dataNormalized, $restParams->getEntityFunctions());
+            return $this->mergeEntityMethods($data, $dataNormalized, $entityMethods);
         }
 
         foreach ($data as $index => $entity) {
@@ -66,30 +68,35 @@ class RestSerializer
                 continue;
             }
 
-            $dataNormalized[$index] = $this->mergeEntityFunctions(
-                $entity,
-                $dataNormalized[$index],
-                $restParams->getEntityFunctions()
-            );
+            $dataNormalized[$index] = $this->mergeEntityMethods($entity, $dataNormalized[$index], $entityMethods);
         }
 
         return $dataNormalized;
     }
 
-    protected function mergeEntityFunctions($entity, $entityNormalized, $entityFunctions)
+    /**
+     * @param $entity
+     * @param $entityNormalized
+     * @param Method[] $entityMethods
+     *
+     * @return array
+     */
+    protected function mergeEntityMethods($entity, $entityNormalized, $entityMethods, $key = '_entityMethods')
     {
         if (!is_array($entityNormalized)) {
             return $entityNormalized;
         }
 
-        $entityNormalized['_entityFunctions'] = [];
+        $methodsData = [];
 
-        foreach ($entityFunctions as $entityFunction) {
-            $function = $entityFunction['function'];
-            $params = $entityFunction['params'];
+        foreach ($entityMethods as $entityMethod) {
+            $name = $entityMethod->getName();
+            $params = $entityMethod->getParams();
 
-            $entityNormalized['_entityFunctions'][$function] = $entity->$function(...$params);
+            $methodsData[$name] = $entity->{$name}(...$params);
         }
+
+        $entityNormalized[$key] = $methodsData;
 
         return $entityNormalized;
     }
@@ -105,18 +112,14 @@ class RestSerializer
         return $context;
     }
 
-    protected function setNormalizeContext($context, RestParams $restParams = null)
+    protected function setNormalizeContext($context, $attributes = null, $groups = null)
     {
-        if (!$restParams) {
-            return $context;
+        if ($attributes) {
+            $context['attributes'] = $attributes;
         }
 
-        if ($restParams->getGroups()) {
-            $context['groups'] = $restParams->getGroups();
-        }
-
-        if ($restParams->getAttributes()) {
-            $context['attributes'] = $restParams->getAttributes();
+        if ($groups) {
+            $context['groups'] = $groups;
         }
 
         return $context;
@@ -125,7 +128,7 @@ class RestSerializer
     protected function setNormalizeCircularReferenceHandler()
     {
         $this->normalizeContext['circular_reference_handler'] = function (RestEntity $object) {
-            return $object->getId();
+            return ['id' => $object->getId()];
         };
     }
 }

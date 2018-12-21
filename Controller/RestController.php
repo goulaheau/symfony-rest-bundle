@@ -158,6 +158,11 @@ abstract class RestController extends AbstractController
      */
     protected function normalize($data)
     {
-        return $this->serializer->normalize($data, $this->restParams);
+        return $this->serializer->normalize(
+            $data,
+            $this->restParams->getAttributes(),
+            $this->restParams->getGroups(),
+            $this->restParams->getEntityMethods()
+        );
     }
 }

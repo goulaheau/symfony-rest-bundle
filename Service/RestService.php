@@ -3,7 +3,6 @@
 namespace Goulaheau\RestBundle\Service;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Goulaheau\RestBundle\Entity\RestEntity;
 use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
 use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
 use Goulaheau\RestBundle\Repository\RestRepository;
@@ -72,16 +71,64 @@ abstract class RestService
      */
     public function search(RestParams $restParams)
     {
-        if ($restParams->getRepositoryFunction()) {
-            return $this->callRepositoryFunction($restParams->getRepositoryFunction());
+        if ($restParams->getRepositoryMethod()) {
+            return $this->callRepositoryMethod($restParams->getRepositoryMethod());
         }
 
-        return $this->repository->findAll();
+        $mode = $restParams->getMode();
+        $sorts = $restParams->getSorts();
+        $pager = $restParams->getPager();
+        $joins = $restParams->getJoins();
+        $conditions = $restParams->getConditions();
+
+        $queryBuilder = $this->repository->createQueryBuilder('o');
+        $queryBuilder->select('o');
+
+        foreach ($conditions as $condition) {
+            $property = $condition->getProperty();
+            $operator = $condition->getOperator();
+            $value = $condition->getValue();
+            $parameter = $condition->getParameter();
+
+            if (!$this->hasPrefix($property)) {
+                $property = 'o.' . $property;
+            }
+
+            $predicate = $queryBuilder->expr()->$operator($property, ':' . $parameter);
+            $queryBuilder->{$mode . 'Where'}($predicate);
+            $queryBuilder->setParameter($parameter, $value);
+        }
+
+        foreach ($sorts as $sort) {
+            $property = $sort->getProperty();
+            $order = $sort->getOrder();
+
+            if (!$this->hasPrefix($property)) {
+                $property = 'o.' . $property;
+            }
+
+            $queryBuilder->orderBy($property, $order);
+        }
+
+        foreach ($joins as $join) {
+            $joinFunction = $join->getType() . 'Join';
+            $path = $join->getPath();
+            $name = $join->getName();
+
+            $queryBuilder->$joinFunction($path, $name);
+        }
+
+        if ($pager) {
+            $queryBuilder->setMaxResults($pager->getLimit());
+            $queryBuilder->setFirstResult($pager->getOffset());
+        }
+
+        return $queryBuilder->getQuery()->getResult();
     }
 
     /**
      * @param $id
-     * @return RestEntity
+     * @return object
      * @throws RestNotFoundException
      */
     public function get($id)
@@ -161,15 +208,13 @@ abstract class RestService
     }
 
     /**
-     * @param $repositoryFunction
+     * @param RestParams\Method $repositoryMethod
+     *
      * @return mixed
      */
-    public function callRepositoryFunction($repositoryFunction)
+    public function callRepositoryMethod($repositoryMethod)
     {
-        $function = $repositoryFunction['function'];
-        $parameters = $repositoryFunction['params'];
-
-        return $this->repository->$function(...$parameters);
+        return $this->repository->{$repositoryMethod->getName()}(...$repositoryMethod->getParams());
     }
 
     /**
@@ -189,5 +234,10 @@ abstract class RestService
     protected function deserialize($data, $toEntity = null)
     {
         return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
+    }
+
+    protected function hasPrefix($value)
+    {
+        return strpos($value, '.') !== false;
     }
 }
