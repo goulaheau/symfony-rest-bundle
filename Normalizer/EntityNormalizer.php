@@ -2,6 +2,7 @@
 
 namespace Goulaheau\RestBundle\Normalizer;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
@@ -45,7 +46,8 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function supportsDenormalization($data, $type, $format = null)
     {
-        return strpos($type, 'App\\Entity\\') === 0 && (is_numeric($data) || is_string($data));
+        return strpos($type, 'App\\Entity\\') === 0 &&
+            (is_numeric($data) || is_string($data) || $this->isAnArrayOfIds($data));
     }
 
     /**
@@ -53,6 +55,36 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        return $this->manager->find($class, $data) ?? new $class();
+        $class = str_replace('[]', '', $class);
+
+        if (!is_array($data)) {
+            return $this->manager->find($class, $data) ?? new $class();
+        }
+
+        $entities = new ArrayCollection();
+
+        foreach ($data as $id) {
+            $entities[] = $this->manager->find($class, $id) ?? new $class();
+        }
+
+        return $entities;
+    }
+
+    protected function isAnArrayOfIds($array)
+    {
+        if (!is_array($array)) {
+            return false;
+        }
+
+        $i = 0;
+        foreach ($array as $key => $value) {
+            if ($i !== $key || !is_int($value)) {
+                return false;
+            }
+
+            ++$i;
+        }
+
+        return true;
     }
 }

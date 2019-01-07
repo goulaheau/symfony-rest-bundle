@@ -1,6 +1,6 @@
 <?php
 
-namespace Goulaheau\RestBundle\Utils\RestParams;
+namespace Goulaheau\RestBundle\Core\RestParams;
 
 class Join
 {

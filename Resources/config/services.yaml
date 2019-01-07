@@ -21,5 +21,24 @@ services:
 #        public: false
 #        tags: [serializer.normalizer]
 
+    goulaheau.rest.serializer: { class: Goulaheau\RestBundle\Core\RestSerializer }
+
+    goulaheau.rest.validator: { class: Goulaheau\RestBundle\Core\RestValidator }
+
     Goulaheau\RestBundle\EventListener\RestEntitySubscriber:
         tags: [name: doctrine.event_subscriber]
+
+    Goulaheau\RestBundle\Controller\RestController:
+        autoconfigure: false
+        abstract: true
+        calls:
+            - [setSerializer, ['@goulaheau.rest.serializer']]
+            - [setLogger, ['@logger']]
+
+    Goulaheau\RestBundle\Service\RestService:
+        autoconfigure: false
+        abstract: true
+        calls:
+            - [setSerializer, ['@goulaheau.rest.serializer']]
+            - [setValidator, ['@goulaheau.rest.validator']]
+            - [setObjectManager, ['@doctrine.orm.entity_manager']]

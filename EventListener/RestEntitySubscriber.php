@@ -18,7 +18,7 @@ class RestEntitySubscriber implements EventSubscriber
      * @param OnFlushEventArgs $args
      * @throws \Exception
      */
-    public function onFlush(OnFlushEventArgs $args): void
+    public function onFlush($args)
     {
         $em = $args->getEntityManager();
         $uow = $em->getUnitOfWork();
@@ -41,7 +41,7 @@ class RestEntitySubscriber implements EventSubscriber
     /**
      * @return array|string[]
      */
-    public function getSubscribedEvents(): array
+    public function getSubscribedEvents()
     {
         return [Events::onFlush];
     }

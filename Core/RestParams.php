@@ -1,13 +1,13 @@
 <?php
 
-namespace Goulaheau\RestBundle\Utils;
+namespace Goulaheau\RestBundle\Core;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use Goulaheau\RestBundle\Utils\RestParams\Condition;
-use Goulaheau\RestBundle\Utils\RestParams\Join;
-use Goulaheau\RestBundle\Utils\RestParams\Method;
-use Goulaheau\RestBundle\Utils\RestParams\Pager;
-use Goulaheau\RestBundle\Utils\RestParams\Sort;
+use Goulaheau\RestBundle\Core\RestParams\Condition;
+use Goulaheau\RestBundle\Core\RestParams\Join;
+use Goulaheau\RestBundle\Core\RestParams\Method;
+use Goulaheau\RestBundle\Core\RestParams\Pager;
+use Goulaheau\RestBundle\Core\RestParams\Sort;
 
 class RestParams
 {
@@ -128,8 +128,8 @@ class RestParams
                     foreach ($joinParts as $joinType) {
                         $joinType = explode('-', $joinType);
 
-                        if (count($joinType) === 2) {
-                            $this->addJoin(new Join($joinType[0], $joinType[1]));
+                        if (in_array(count($joinType), [1, 2])) {
+                            $this->addJoin(new Join($joinType[0], $joinType[1] ?? null));
                         }
                     }
 

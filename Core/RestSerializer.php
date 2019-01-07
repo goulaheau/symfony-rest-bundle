@@ -1,9 +1,9 @@
 <?php
 
-namespace Goulaheau\RestBundle\Utils;
+namespace Goulaheau\RestBundle\Core;
 
 use Goulaheau\RestBundle\Entity\RestEntity;
-use Goulaheau\RestBundle\Utils\RestParams\Method;
+use Goulaheau\RestBundle\Core\RestParams\Method;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 

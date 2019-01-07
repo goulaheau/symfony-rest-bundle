@@ -1,6 +1,6 @@
 <?php
 
-namespace Goulaheau\RestBundle\Utils\RestParams;
+namespace Goulaheau\RestBundle\Core\RestParams;
 
 class Condition
 {
@@ -39,6 +39,8 @@ class Condition
         if (in_array($operator, ['in', 'notIn'])) {
             $value = explode(',', $value);
         }
+
+        $property = str_replace('_', '.', $property);
 
         $this->setProperty($property);
         $this->setOperator($operator);

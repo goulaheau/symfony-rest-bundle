@@ -1,6 +1,6 @@
 <?php
 
-namespace Goulaheau\RestBundle\Utils;
+namespace Goulaheau\RestBundle\Core;
 
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;

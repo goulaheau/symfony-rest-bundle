@@ -6,9 +6,9 @@ use Doctrine\Common\Persistence\ObjectManager;
 use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
 use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
 use Goulaheau\RestBundle\Repository\RestRepository;
-use Goulaheau\RestBundle\Utils\RestParams;
-use Goulaheau\RestBundle\Utils\RestSerializer;
-use Goulaheau\RestBundle\Utils\RestValidator;
+use Goulaheau\RestBundle\Core\RestParams;
+use Goulaheau\RestBundle\Core\RestSerializer;
+use Goulaheau\RestBundle\Core\RestValidator;
 
 abstract class RestService
 {
@@ -35,7 +35,7 @@ abstract class RestService
     /**
      * @var ObjectManager
      */
-    protected $manager;
+    protected $objectManager;
 
     /**
      * @var RestParams
@@ -47,87 +47,37 @@ abstract class RestService
      *
      * @param string         $entityClass
      * @param RestRepository $repository
-     * @param RestSerializer $serializer
-     * @param RestValidator  $validator
-     * @param ObjectManager  $manager
      */
-    public function __construct(
-        string $entityClass,
-        RestRepository $repository,
-        RestSerializer $serializer,
-        RestValidator $validator,
-        ObjectManager $manager
-    ) {
+    public function __construct(string $entityClass, RestRepository $repository)
+    {
         $this->entityClass = $entityClass;
         $this->repository = $repository;
-        $this->validator = $validator;
-        $this->serializer = $serializer;
-        $this->manager = $manager;
     }
 
     /**
      * @param RestParams $restParams
+     * @param bool       $returnAll
+     *
      * @return mixed
      */
-    public function search(RestParams $restParams)
+    public function search(RestParams $restParams, $returnAll = false)
     {
         if ($restParams->getRepositoryMethod()) {
             return $this->callRepositoryMethod($restParams->getRepositoryMethod());
         }
 
-        $mode = $restParams->getMode();
-        $sorts = $restParams->getSorts();
-        $pager = $restParams->getPager();
-        $joins = $restParams->getJoins();
-        $conditions = $restParams->getConditions();
-
-        $queryBuilder = $this->repository->createQueryBuilder('o');
-        $queryBuilder->select('o');
-
-        foreach ($conditions as $condition) {
-            $property = $condition->getProperty();
-            $operator = $condition->getOperator();
-            $value = $condition->getValue();
-            $parameter = $condition->getParameter();
-
-            if (!$this->hasPrefix($property)) {
-                $property = 'o.' . $property;
-            }
-
-            $predicate = $queryBuilder->expr()->$operator($property, ':' . $parameter);
-            $queryBuilder->{$mode . 'Where'}($predicate);
-            $queryBuilder->setParameter($parameter, $value);
-        }
-
-        foreach ($sorts as $sort) {
-            $property = $sort->getProperty();
-            $order = $sort->getOrder();
-
-            if (!$this->hasPrefix($property)) {
-                $property = 'o.' . $property;
-            }
-
-            $queryBuilder->orderBy($property, $order);
-        }
-
-        foreach ($joins as $join) {
-            $joinFunction = $join->getType() . 'Join';
-            $path = $join->getPath();
-            $name = $join->getName();
-
-            $queryBuilder->$joinFunction($path, $name);
-        }
-
-        if ($pager) {
-            $queryBuilder->setMaxResults($pager->getLimit());
-            $queryBuilder->setFirstResult($pager->getOffset());
-        }
-
-        return $queryBuilder->getQuery()->getResult();
+        return $this->repository->search(
+            $restParams->getConditions(),
+            $restParams->getSorts(),
+            $restParams->getJoins(),
+            $returnAll ? null : $restParams->getPager(),
+            $restParams->getMode()
+        );
     }
 
     /**
      * @param $id
+     *
      * @return object
      * @throws RestNotFoundException
      */
@@ -145,6 +95,7 @@ abstract class RestService
     /**
      * @param      $entity
      * @param bool $isDeserialized
+     *
      * @return object
      * @throws RestEntityValidationException
      */
@@ -160,8 +111,8 @@ abstract class RestService
             throw new RestEntityValidationException($errors);
         }
 
-        $this->manager->persist($entity);
-        $this->manager->flush();
+        $this->objectManager->persist($entity);
+        $this->objectManager->flush();
 
         return $entity;
     }
@@ -170,6 +121,7 @@ abstract class RestService
      * @param      $entity
      * @param null $id
      * @param bool $isDeserialized
+     *
      * @return mixed
      * @throws RestNotFoundException
      * @throws RestEntityValidationException
@@ -190,21 +142,22 @@ abstract class RestService
             throw new RestEntityValidationException($errors);
         }
 
-        $this->manager->flush();
+        $this->objectManager->flush();
 
         return $entity;
     }
 
     /**
      * @param $id
+     *
      * @throws RestNotFoundException
      */
     public function delete($id)
     {
         $entity = $this->get($id);
 
-        $this->manager->remove($entity);
-        $this->manager->flush();
+        $this->objectManager->remove($entity);
+        $this->objectManager->flush();
     }
 
     /**
@@ -217,8 +170,24 @@ abstract class RestService
         return $this->repository->{$repositoryMethod->getName()}(...$repositoryMethod->getParams());
     }
 
+    public function setSerializer($serializer)
+    {
+        $this->serializer = $serializer;
+    }
+
+    public function setValidator($validator)
+    {
+        $this->validator = $validator;
+    }
+
+    public function setObjectManager($objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
+
     /**
      * @param $entity
+     *
      * @return array
      */
     protected function validate($entity)
@@ -229,15 +198,11 @@ abstract class RestService
     /**
      * @param      $data
      * @param null $toEntity
+     *
      * @return object
      */
     protected function deserialize($data, $toEntity = null)
     {
         return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
-    }
-
-    protected function hasPrefix($value)
-    {
-        return strpos($value, '.') !== false;
     }
 }
