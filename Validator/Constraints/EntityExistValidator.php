@@ -7,14 +7,17 @@ use Goulaheau\RestBundle\Core\Utils;
 use Goulaheau\RestBundle\Entity\RestEntity;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class EntityExistValidator extends ConstraintValidator
 {
     protected $manager;
+    protected $translator;
 
-    public function __construct(EntityManagerInterface $manager)
+    public function __construct(EntityManagerInterface $manager, TranslatorInterface $translator)
     {
         $this->manager = $manager;
+        $this->translator = $translator;
     }
 
     /**
@@ -27,10 +30,10 @@ class EntityExistValidator extends ConstraintValidator
         $repository = $this->manager->getRepository($valueClass);
 
         if (!$value->getId() || !$repository->find($value->getId())) {
-            $this->context->addViolation($constraint->message, [
-                '{{ class }}' => Utils::classNameToLowerCase($this->context->getClassName()),
-                '{{ property }}' => $this->context->getPropertyPath(),
-            ]);
+            $className = Utils::classNameToLowerCase($this->context->getClassName());
+            $property = $this->context->getPropertyPath();
+
+            $this->context->addViolation("$className.$property.entity-exist");
         }
     }
 }
