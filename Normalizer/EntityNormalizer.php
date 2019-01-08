@@ -64,12 +64,21 @@ class EntityNormalizer extends ObjectNormalizer
         $entities = new ArrayCollection();
 
         foreach ($data as $id) {
-            $entities[] = $this->manager->find($class, $id) ?? new $class();
+            $entity = $this->manager->find($class, $id);
+
+            if ($entity) {
+                $entities[] = $entity;
+            }
         }
 
         return $entities;
     }
 
+    /**
+     * @param $array
+     *
+     * @return bool
+     */
     protected function isAnArrayOfIds($array)
     {
         if (!is_array($array)) {

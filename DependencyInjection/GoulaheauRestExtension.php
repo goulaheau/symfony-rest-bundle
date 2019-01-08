@@ -29,11 +29,6 @@ class GoulaheauRestExtension extends Extension implements PrependExtensionInterf
     {
         $yamlParser = new YamlParser();
 
-        $doctrineConfig = $yamlParser->parse(
-            file_get_contents(__DIR__ . '/../Resources/config/packages/doctrine.yaml')
-        );
-        $container->prependExtensionConfig('doctrine', $doctrineConfig['doctrine']);
-
         $frameworkConfig = $yamlParser->parse(
             file_get_contents(__DIR__ . '/../Resources/config/packages/framework.yaml')
         );
