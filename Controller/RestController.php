@@ -156,6 +156,7 @@ abstract class RestController extends AbstractController
     {
         switch (true) {
             case $exception instanceof RestException:
+                $this->logger->notice($exception->getMessage(), $exception->getTrace());
                 return $this->json($exception->getData(), $exception->getStatus());
             default:
                 $this->logger->error($exception->getMessage(), $exception->getTrace());

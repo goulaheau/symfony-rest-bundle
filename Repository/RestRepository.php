@@ -11,10 +11,10 @@ use Goulaheau\RestBundle\Core\RestParams\Sort;
 
 abstract class RestRepository extends ServiceEntityRepository
 {
-    public function __construct(string $entityClass, ManagerRegistry $registry)
-    {
-        parent::__construct($registry, $entityClass);
-    }
+   public function __construct(ManagerRegistry $registry, $entityClass)
+   {
+       parent::__construct($registry, $entityClass);
+   }
 
     /**
      * @param Condition[] $conditions
