@@ -1,0 +1,39 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Goulaheau\RestBundle\:
+        resource: '../../*'
+        exclude: '../../{DependencyInjection,Entity,Migrations,Tests,Kernel.php}'
+
+    # Services
+    goulaheau.rest.serializer: { class: Goulaheau\RestBundle\Core\RestSerializer }
+    goulaheau.rest.validator: { class: Goulaheau\RestBundle\Core\RestValidator }
+
+    # Normalizers
+    Symfony\Component\Serializer\Normalizer\DateTimeNormalizer:
+        tags: [serializer.normalizer]
+
+    Goulaheau\RestBundle\Normalizer\EntityNormalizer:
+        tags: [serializer.normalizer]
+
+    # Subscribers
+    Goulaheau\RestBundle\EventListener\RestEntitySubscriber:
+        tags: [name: doctrine.event_subscriber]
+
+    # Defaults Dependency Injection
+    Goulaheau\RestBundle\Controller\RestController:
+        autoconfigure: false
+        abstract: true
+        calls:
+            - [setSerializer, ['@goulaheau.rest.serializer']]
+            - [setLogger, ['@logger']]
+
+    Goulaheau\RestBundle\Service\RestService:
+        autoconfigure: false
+        abstract: true
+        calls:
+            - [setSerializer, ['@goulaheau.rest.serializer']]
+            - [setValidator, ['@goulaheau.rest.validator']]
+            - [setObjectManager, ['@doctrine.orm.entity_manager']]
