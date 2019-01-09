@@ -9,8 +9,5 @@ use Symfony\Component\Validator\Constraint;
  */
 class EntityExist extends Constraint
 {
-    public function validatedBy()
-    {
-        return EntityExistValidator::class;
-    }
+    public $message = 'This entity does not exist.';
 }

@@ -35,7 +35,7 @@ abstract class RestService
     /**
      * @var ObjectManager
      */
-    protected $objectManager;
+    protected $manager;
 
     /**
      * @var RestParams
@@ -111,8 +111,8 @@ abstract class RestService
             throw new RestEntityValidationException($errors);
         }
 
-        $this->objectManager->persist($entity);
-        $this->objectManager->flush();
+        $this->manager->persist($entity);
+        $this->manager->flush();
 
         return $entity;
     }
@@ -142,7 +142,7 @@ abstract class RestService
             throw new RestEntityValidationException($errors);
         }
 
-        $this->objectManager->flush();
+        $this->manager->flush();
 
         return $entity;
     }
@@ -156,8 +156,8 @@ abstract class RestService
     {
         $entity = $this->get($id);
 
-        $this->objectManager->remove($entity);
-        $this->objectManager->flush();
+        $this->manager->remove($entity);
+        $this->manager->flush();
     }
 
     /**
@@ -180,9 +180,9 @@ abstract class RestService
         $this->validator = $validator;
     }
 
-    public function setObjectManager($objectManager)
+    public function setManager($manager)
     {
-        $this->objectManager = $objectManager;
+        $this->manager = $manager;
     }
 
     /**

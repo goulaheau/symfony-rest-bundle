@@ -36,4 +36,4 @@ services:
         calls:
             - [setSerializer, ['@goulaheau.rest.serializer']]
             - [setValidator, ['@goulaheau.rest.validator']]
-            - [setObjectManager, ['@doctrine.orm.entity_manager']]
+            - [setManager, ['@doctrine.orm.entity_manager']]
