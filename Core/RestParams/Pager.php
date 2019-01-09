@@ -30,9 +30,9 @@ class Pager
     }
 
     /**
-     * @return int|null
+     * @return int
      */
-    public function getLimit(): ?int
+    public function getLimit()
     {
         return $this->limit;
     }
@@ -40,9 +40,9 @@ class Pager
     /**
      * @param int $limit
      *
-     * @return self
+     * @return $this
      */
-    public function setLimit($limit): self
+    public function setLimit($limit)
     {
         $this->limit = $limit > 0 ? $limit : 25;
 
@@ -50,9 +50,9 @@ class Pager
     }
 
     /**
-     * @return int|null
+     * @return int
      */
-    public function getOffset(): ?int
+    public function getOffset()
     {
         return $this->offset;
     }
@@ -60,9 +60,9 @@ class Pager
     /**
      * @param int $offset
      *
-     * @return self
+     * @return $this
      */
-    public function setOffset($offset): self
+    public function setOffset($offset)
     {
         $this->offset = $offset >= 0 ? $offset : 0;
 

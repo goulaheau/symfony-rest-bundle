@@ -2,7 +2,6 @@
 
 namespace Goulaheau\RestBundle\Controller;
 
-use Goulaheau\RestBundle\Core\RequestParser;
 use Goulaheau\RestBundle\Exception\RestException;
 use Goulaheau\RestBundle\Service\RestService;
 use Goulaheau\RestBundle\Core\RestParams;
@@ -63,9 +62,7 @@ abstract class RestController extends AbstractController
             $entities = $this->service->search($this->restParams);
             $entities = $this->normalize($entities);
 
-            $total = $this->restParams->getPager()
-                ? count($this->service->search($this->restParams, true))
-                : count($entities);
+            $total = $this->getTotal($entities);
         } catch (\Exception $exception) {
             return $this->exceptionHandler($exception);
         }
@@ -162,6 +159,27 @@ abstract class RestController extends AbstractController
                 $this->logger->error($exception->getMessage(), $exception->getTrace());
                 return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * @param array $entities
+     *
+     * @return int
+     */
+    protected function getTotal($entities)
+    {
+        $pager = $this->restParams->getPager();
+        $limit = $pager->getLimit();
+        $offset = $pager->getOffset();
+        $entitiesNumber = count($entities);
+
+        if ($entitiesNumber === 0 && $offset === 0) {
+            return 0;
+        }
+
+        return in_array($entitiesNumber, [0, $limit], true) === 0
+            ? count($this->service->search($this->restParams, true))
+            : $offset + $entitiesNumber;
     }
 
     /**
