@@ -169,9 +169,14 @@ abstract class RestController extends AbstractController
     protected function getTotal($entities)
     {
         $pager = $this->restParams->getPager();
+        $entitiesNumber = count($entities);
+
+        if (!$pager) {
+            return $entitiesNumber;
+        }
+
         $limit = $pager->getLimit();
         $offset = $pager->getOffset();
-        $entitiesNumber = count($entities);
 
         if ($entitiesNumber === 0 && $offset === 0) {
             return 0;
