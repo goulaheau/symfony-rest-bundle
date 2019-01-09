@@ -67,7 +67,7 @@ abstract class RestController extends AbstractController
             return $this->exceptionHandler($exception);
         }
 
-        return $this->json($entities, 200, ['X-Rest-Total', $total]);
+        return $this->json($entities, 200, ['X-Rest-Total' => $total]);
     }
 
     /**
