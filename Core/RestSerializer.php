@@ -2,8 +2,8 @@
 
 namespace Goulaheau\RestBundle\Core;
 
-use Goulaheau\RestBundle\Entity\RestEntity;
 use Goulaheau\RestBundle\Core\RestParams\Method;
+use Goulaheau\RestBundle\Entity\RestEntity;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -14,39 +14,40 @@ class RestSerializer
      */
     protected $serializer;
 
-    protected $deserializeContext = ['groups' => 'editable'];
+    protected $denormalizeContext = ['groups' => 'editable'];
 
     protected $normalizeContext = ['groups' => 'readable'];
 
     public function __construct(SerializerInterface $serializer)
     {
         $this->serializer = $serializer;
-        $this->setNormalizeCircularReferenceHandler();
     }
 
     /**
-     * @param      $data
-     * @param null $toEntity
+     * @param        $data
+     * @param string $entityClass
+     * @param null   $toEntity
      *
      * @return object
      */
-    public function deserialize($data, $entityClass, $toEntity = null)
+    public function denormalize($data, $entityClass, $toEntity = null)
     {
-        $context = $this->setDeserializeContext($this->deserializeContext, $toEntity);
+        $context = $this->getDenormalizeContext($this->denormalizeContext, $toEntity);
 
-        return $this->serializer->deserialize($data, $entityClass, 'json', $context);
+        return $this->serializer->denormalize($data, $entityClass, null, $context);
     }
 
     /**
-     * @param mixed $data
-     * @param array $groups
-     * @param array $attributes
+     * @param mixed    $data
+     * @param array    $groups
+     * @param array    $attributes
      * @param Method[] $entityMethods
+     *
      * @return array|bool|float|int|mixed|string
      */
     public function normalize($data, $attributes = null, $groups = null, $entityMethods = null)
     {
-        $context = $this->setNormalizeContext($this->normalizeContext, $attributes, $groups);
+        $context = $this->getNormalizeContext($this->normalizeContext, $attributes, $groups);
 
         $dataNormalized = $this->serializer->normalize($data, null, $context);
 
@@ -75,8 +76,8 @@ class RestSerializer
     }
 
     /**
-     * @param $entity
-     * @param $entityNormalized
+     * @param          $entity
+     * @param          $entityNormalized
      * @param Method[] $entityMethods
      *
      * @return array
@@ -93,7 +94,7 @@ class RestSerializer
             $name = $entityMethod->getName();
             $params = $entityMethod->getParams();
 
-            $methodsData[$name] = $entity->{$name}(...$params);
+            $methodsData[$name] = $entity->$name(...$params);
         }
 
         $entityNormalized[$key] = $methodsData;
@@ -101,7 +102,7 @@ class RestSerializer
         return $entityNormalized;
     }
 
-    protected function setDeserializeContext($context, $toEntity = null)
+    protected function getDenormalizeContext($context, $toEntity = null)
     {
         if (!$toEntity) {
             return $context;
@@ -112,7 +113,7 @@ class RestSerializer
         return $context;
     }
 
-    protected function setNormalizeContext($context, $attributes = null, $groups = null)
+    protected function getNormalizeContext($context, $attributes = null, $groups = null)
     {
         if ($attributes) {
             $context['attributes'] = $attributes;
@@ -122,13 +123,12 @@ class RestSerializer
             $context['groups'] = $groups;
         }
 
-        return $context;
-    }
+        if (!isset($context['circular_reference_handler'])) {
+            $context['circular_reference_handler'] = function (RestEntity $object) {
+                return ['id' => $object->getId()];
+            };
+        }
 
-    protected function setNormalizeCircularReferenceHandler()
-    {
-        $this->normalizeContext['circular_reference_handler'] = function (RestEntity $object) {
-            return ['id' => $object->getId()];
-        };
+        return $context;
     }
 }

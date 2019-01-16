@@ -102,7 +102,7 @@ abstract class RestService
     public function create($entity, $isDeserialized = false)
     {
         if (!$isDeserialized) {
-            $entity = $this->deserialize($entity);
+            $entity = $this->denormalize($entity);
         }
 
         $errors = $this->validate($entity);
@@ -133,7 +133,7 @@ abstract class RestService
         }
 
         if (isset($toEntity)) {
-            $this->deserialize($entity, $toEntity);
+            $this->denormalize($entity, $toEntity);
         }
 
         $errors = $this->validate($entity);
@@ -201,8 +201,8 @@ abstract class RestService
      *
      * @return object
      */
-    protected function deserialize($data, $toEntity = null)
+    protected function denormalize($data, $toEntity = null)
     {
-        return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
+        return $this->serializer->denormalize($data, $this->entityClass, $toEntity);
     }
 }
