@@ -18,7 +18,10 @@ services:
     Goulaheau\RestBundle\Normalizer\EntityNormalizer:
         tags: [serializer.normalizer]
 
-    # Subscribers
+    # Listeners
+    Goulaheau\RestBundle\EventListener\JsonRequestTransformerListener:
+        tags: [{ name: kernel.event_listener, event: kernel.request }]
+
     Goulaheau\RestBundle\EventListener\RestEntitySubscriber:
         tags: [name: doctrine.event_subscriber]
 

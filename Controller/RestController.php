@@ -13,11 +13,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-/**
- * Class RestController
- *
- * @package Goulaheau\RestBundle\Controller
- */
 abstract class RestController extends AbstractController
 {
     /**
@@ -95,7 +90,7 @@ abstract class RestController extends AbstractController
         try {
             $this->restParams = new RestParams($request->query->all());
 
-            $entity = $this->service->create($request->getContent());
+            $entity = $this->service->create($request->request->all());
             $entity = $this->normalize($entity);
         } catch (\Exception $exception) {
             return $this->exceptionHandler($exception);
@@ -109,10 +104,12 @@ abstract class RestController extends AbstractController
      */
     public function updateEntity($id, Request $request)
     {
+        var_dump($request->request->all());
+
         try {
             $this->restParams = new RestParams($request->query->all());
 
-            $entity = $this->service->update($request->getContent(), $id);
+            $entity = $this->service->update($request->request->all(), $id);
             $entity = $this->normalize($entity);
         } catch (\Exception $exception) {
             return $this->exceptionHandler($exception);
@@ -192,9 +189,9 @@ abstract class RestController extends AbstractController
      * @param null $toEntity
      * @return object
      */
-    protected function deserialize($data, $toEntity = null)
+    protected function denormalize($data, $toEntity = null)
     {
-        return $this->serializer->deserialize($data, $this->entityClass, $toEntity);
+        return $this->serializer->denormalize($data, $this->entityClass, $toEntity);
     }
 
     /**
