@@ -104,8 +104,6 @@ abstract class RestController extends AbstractController
      */
     public function updateEntity($id, Request $request)
     {
-        var_dump($request->request->all());
-
         try {
             $this->restParams = new RestParams($request->query->all());
 
