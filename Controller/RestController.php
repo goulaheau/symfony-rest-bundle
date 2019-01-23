@@ -57,12 +57,15 @@ abstract class RestController extends AbstractController
             $entities = $this->service->search($this->restParams);
             $entities = $this->normalize($entities);
 
-            $total = $this->getTotal($entities);
+            $headers = [
+                'X-Rest-Total' => $this->getTotal($entities),
+                'X-Rest-Total-Filtered' => $this->getTotal($entities, true),
+            ];
         } catch (\Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
-        return $this->json($entities, 200, ['X-Rest-Total' => $total]);
+        return $this->json($entities, 200, $headers);
     }
 
     /**
@@ -161,10 +164,15 @@ abstract class RestController extends AbstractController
      *
      * @return int
      */
-    protected function getTotal($entities)
+    protected function getTotal($entities, $filtered = false)
     {
+        $conditions = $this->restParams->getConditions();
         $pager = $this->restParams->getPager();
         $entitiesNumber = count($entities);
+
+        if (!$filtered && count($conditions) > 0) {
+            return count($this->service->search(new RestParams()));
+        }
 
         if (!$pager) {
             return $entitiesNumber;
@@ -177,7 +185,7 @@ abstract class RestController extends AbstractController
             return 0;
         }
 
-        return in_array($entitiesNumber, [0, $limit], true) === 0
+        return in_array($entitiesNumber, [0, $limit], true)
             ? count($this->service->search($this->restParams, true))
             : $offset + $entitiesNumber;
     }
