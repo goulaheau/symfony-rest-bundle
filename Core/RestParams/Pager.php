@@ -44,7 +44,7 @@ class Pager
      */
     public function setLimit($limit)
     {
-        $this->limit = $limit > 0 ? $limit : 25;
+        $this->limit = $limit > 0 ? (int) $limit : 25;
 
         return $this;
     }
@@ -64,7 +64,7 @@ class Pager
      */
     public function setOffset($offset)
     {
-        $this->offset = $offset >= 0 ? $offset : 0;
+        $this->offset = $offset >= 0 ? (int) $offset : 0;
 
         return $this;
     }
