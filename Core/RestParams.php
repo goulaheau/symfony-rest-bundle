@@ -470,6 +470,16 @@ class RestParams
         return $this;
     }
 
+    /**
+     * @param string $value
+     *
+     * @return bool
+     */
+    public static function hasPrefix($value)
+    {
+        return strpos($value, '.') !== false;
+    }
+
     protected function relationsToArray($attributes)
     {
         $relations = [];

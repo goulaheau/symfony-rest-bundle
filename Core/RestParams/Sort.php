@@ -2,6 +2,8 @@
 
 namespace Goulaheau\RestBundle\Core\RestParams;
 
+use Goulaheau\RestBundle\Core\RestParams;
+
 class Sort
 {
     /**
@@ -45,6 +47,10 @@ class Sort
      */
     public function setProperty($property)
     {
+        if (!RestParams::hasPrefix($property)) {
+            $property = "o.$property";
+        }
+
         $this->property = $property;
 
         return $this;

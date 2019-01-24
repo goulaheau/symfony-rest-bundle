@@ -3,12 +3,12 @@
 namespace Goulaheau\RestBundle\Service;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
-use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
-use Goulaheau\RestBundle\Repository\RestRepository;
 use Goulaheau\RestBundle\Core\RestParams;
 use Goulaheau\RestBundle\Core\RestSerializer;
 use Goulaheau\RestBundle\Core\RestValidator;
+use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
+use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
+use Goulaheau\RestBundle\Repository\RestRepository;
 
 abstract class RestService
 {
@@ -63,7 +63,11 @@ abstract class RestService
     public function search(RestParams $restParams, $returnAll = false)
     {
         if ($restParams->getRepositoryMethod()) {
-            return $this->callRepositoryMethod($restParams->getRepositoryMethod());
+            if ($returnAll) {
+                $restParams->setPager(null);
+            }
+
+            return $this->callRepositoryMethod($restParams);
         }
 
         return $this->repository->search(
@@ -161,13 +165,16 @@ abstract class RestService
     }
 
     /**
+     * @param RestParams        $restParams
      * @param RestParams\Method $repositoryMethod
      *
      * @return mixed
      */
-    public function callRepositoryMethod($repositoryMethod)
+    public function callRepositoryMethod($restParams)
     {
-        return $this->repository->{$repositoryMethod->getName()}(...$repositoryMethod->getParams());
+        $repositoryMethod = $restParams->getRepositoryMethod();
+
+        return $this->repository->{$repositoryMethod->getName()}($restParams, ...$repositoryMethod->getParams());
     }
 
     public function setSerializer($serializer)

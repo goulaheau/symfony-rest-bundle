@@ -2,6 +2,9 @@
 
 namespace Goulaheau\RestBundle\Core\RestParams;
 
+use Doctrine\ORM\QueryBuilder;
+use Goulaheau\RestBundle\Core\RestParams;
+
 class Condition
 {
     /**
@@ -63,6 +66,10 @@ class Condition
      */
     public function setProperty($property)
     {
+        if (!RestParams::hasPrefix($property)) {
+            $property = "o.$property";
+        }
+
         $this->property = $property;
 
         return $this;
@@ -126,6 +133,11 @@ class Condition
         $this->parameter = $parameter ?? self::generateRandomString();
 
         return $this;
+    }
+
+    public function getPredicate(QueryBuilder $queryBuilder)
+    {
+        return $queryBuilder->expr()->{$this->getOperator()}($this->getProperty(), ':' . $this->getParameter());
     }
 
     /**
