@@ -57,10 +57,7 @@ abstract class RestController extends AbstractController
             $entities = $this->service->search($this->restParams);
             $entities = $this->normalize($entities);
 
-            $headers = [
-                'X-Rest-Total' => $this->getTotal($entities),
-                'X-Rest-Total-Filtered' => $this->getTotal($entities, true),
-            ];
+            $headers = ['X-Rest-Total' => $this->getTotal($entities)];
         } catch (\Exception $exception) {
             return $this->exceptionHandler($exception);
         }
@@ -164,15 +161,10 @@ abstract class RestController extends AbstractController
      *
      * @return int
      */
-    protected function getTotal($entities, $filtered = false)
+    protected function getTotal($entities)
     {
-        $conditions = $this->restParams->getConditions();
         $pager = $this->restParams->getPager();
         $entitiesNumber = count($entities);
-
-        if (!$filtered && count($conditions) > 0) {
-            return count($this->service->search(new RestParams()));
-        }
 
         if (!$pager) {
             return $entitiesNumber;

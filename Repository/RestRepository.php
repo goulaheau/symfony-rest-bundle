@@ -4,6 +4,8 @@ namespace Goulaheau\RestBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use Goulaheau\RestBundle\Core\RestParams\Condition;
 use Goulaheau\RestBundle\Core\RestParams\Join;
 use Goulaheau\RestBundle\Core\RestParams\Pager;
@@ -11,10 +13,10 @@ use Goulaheau\RestBundle\Core\RestParams\Sort;
 
 abstract class RestRepository extends ServiceEntityRepository
 {
-   public function __construct(ManagerRegistry $registry, $entityClass)
-   {
-       parent::__construct($registry, $entityClass);
-   }
+    public function __construct(ManagerRegistry $registry, $entityClass)
+    {
+        parent::__construct($registry, $entityClass);
+    }
 
     /**
      * @param Condition[] $conditions
@@ -27,35 +29,78 @@ abstract class RestRepository extends ServiceEntityRepository
      */
     public function search($conditions = [], $sorts = [], $joins = [], $pager = null, $mode = 'and')
     {
-        $queryBuilder = $this->createQueryBuilder('o');
-        $queryBuilder->select('o');
+        $queryBuilder = $this->createQueryBuilder('o')->select('o');
 
-        foreach ($conditions as $condition) {
-            $property = $condition->getProperty();
-            $operator = $condition->getOperator();
-            $value = $condition->getValue();
-            $parameter = $condition->getParameter();
+        $this->queryBuilderConditions($queryBuilder, $conditions, $mode);
+        $this->queryBuilderSorts($queryBuilder, $sorts);
+        $this->queryBuilderJoins($queryBuilder, $joins);
+        $this->queryBuilderPager($queryBuilder, $pager);
 
-            if (!$this->hasPrefix($property)) {
-                $property = 'o.' . $property;
-            }
+        return $queryBuilder->getQuery()->getResult();
+    }
 
-            $predicate = $queryBuilder->expr()->$operator($property, ':' . $parameter);
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Condition[]  $conditions
+     * @param string       $mode
+     */
+    protected function queryBuilderConditions($queryBuilder, $conditions, $mode)
+    {
+        foreach ($this->getPredicates($queryBuilder, $conditions) as $predicate) {
             $queryBuilder->{$mode . 'Where'}($predicate);
-            $queryBuilder->setParameter($parameter, $value);
         }
 
+        $this->queryBuilderParameters($queryBuilder, $conditions);
+    }
+
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Condition[]  $conditions
+     *
+     * @return array
+     */
+    protected function getPredicates($queryBuilder, $conditions)
+    {
+        $predicates = [];
+
+        foreach ($conditions as $condition) {
+            $predicates[] = $condition->getPredicate($queryBuilder);
+        }
+
+        return $predicates;
+    }
+
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Condition[] $conditions
+     */
+    protected function queryBuilderParameters($queryBuilder, $conditions)
+    {
+        foreach ($conditions as $condition) {
+            $queryBuilder->setParameter($condition->getParameter(), $condition->getValue());
+        }
+    }
+
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Sort[]       $sorts
+     */
+    protected function queryBuilderSorts($queryBuilder, $sorts)
+    {
         foreach ($sorts as $sort) {
             $property = $sort->getProperty();
             $order = $sort->getOrder();
 
-            if (!$this->hasPrefix($property)) {
-                $property = 'o.' . $property;
-            }
-
             $queryBuilder->orderBy($property, $order);
         }
+    }
 
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Join[]       $joins
+     */
+    protected function queryBuilderJoins($queryBuilder, $joins)
+    {
         foreach ($joins as $join) {
             $joinFunction = $join->getType() . 'Join';
             $path = $join->getPath();
@@ -63,17 +108,17 @@ abstract class RestRepository extends ServiceEntityRepository
 
             $queryBuilder->$joinFunction($path, $name);
         }
+    }
 
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param Pager|null   $pager
+     */
+    protected function queryBuilderPager($queryBuilder, $pager)
+    {
         if ($pager) {
             $queryBuilder->setMaxResults($pager->getLimit());
             $queryBuilder->setFirstResult($pager->getOffset());
         }
-
-        return $queryBuilder->getQuery()->getResult();
-    }
-
-    protected function hasPrefix($value)
-    {
-        return strpos($value, '.') !== false;
     }
 }
