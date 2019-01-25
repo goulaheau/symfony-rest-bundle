@@ -9,6 +9,7 @@ use Goulaheau\RestBundle\Core\RestValidator;
 use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
 use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
 use Goulaheau\RestBundle\Repository\RestRepository;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 abstract class RestService
 {
@@ -105,6 +106,10 @@ abstract class RestService
      */
     public function create($entity, $isDeserialized = false)
     {
+        if (!$entity) {
+            throw new BadRequestHttpException();
+        }
+
         if (!$isDeserialized) {
             $entity = $this->denormalize($entity);
         }
@@ -132,6 +137,10 @@ abstract class RestService
      */
     public function update($entity, $id = null, $isDeserialized = false)
     {
+        if (!$entity) {
+            throw new BadRequestHttpException();
+        }
+
         if ($id && !$isDeserialized) {
             $toEntity = $this->get($id);
         }
