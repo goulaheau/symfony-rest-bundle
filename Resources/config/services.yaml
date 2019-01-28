@@ -38,5 +38,6 @@ services:
         abstract: true
         calls:
             - [setSerializer, ['@goulaheau.rest.serializer']]
+            - [setFilter, ['@dms.filter.inner.filter']]
             - [setValidator, ['@goulaheau.rest.validator']]
             - [setManager, ['@doctrine.orm.entity_manager']]

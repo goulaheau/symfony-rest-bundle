@@ -2,14 +2,15 @@
 
 namespace Goulaheau\RestBundle\Service;
 
+use DMS\Filter\Filter;
 use Doctrine\Common\Persistence\ObjectManager;
 use Goulaheau\RestBundle\Core\RestParams;
 use Goulaheau\RestBundle\Core\RestSerializer;
 use Goulaheau\RestBundle\Core\RestValidator;
+use Goulaheau\RestBundle\Exception\RestException\RestBadRequestException;
 use Goulaheau\RestBundle\Exception\RestException\RestEntityValidationException;
 use Goulaheau\RestBundle\Exception\RestException\RestNotFoundException;
 use Goulaheau\RestBundle\Repository\RestRepository;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 abstract class RestService
 {
@@ -27,6 +28,11 @@ abstract class RestService
      * @var RestSerializer
      */
     protected $serializer;
+
+    /**
+     * @var Filter
+     */
+    protected $filter;
 
     /**
      * @var RestValidator
@@ -102,17 +108,21 @@ abstract class RestService
      * @param bool $isDeserialized
      *
      * @return object
+     *
      * @throws RestEntityValidationException
+     * @throws RestBadRequestException
      */
     public function create($entity, $isDeserialized = false)
     {
         if (!$entity) {
-            throw new BadRequestHttpException();
+            throw new RestBadRequestException();
         }
 
         if (!$isDeserialized) {
             $entity = $this->denormalize($entity);
         }
+
+        $this->filter->filterEntity($entity);
 
         $errors = $this->validate($entity);
 
@@ -132,13 +142,15 @@ abstract class RestService
      * @param bool $isDeserialized
      *
      * @return mixed
+     *
      * @throws RestNotFoundException
      * @throws RestEntityValidationException
+     * @throws RestBadRequestException
      */
     public function update($entity, $id = null, $isDeserialized = false)
     {
         if (!$entity) {
-            throw new BadRequestHttpException();
+            throw new RestBadRequestException();
         }
 
         if ($id && !$isDeserialized) {
@@ -147,6 +159,7 @@ abstract class RestService
 
         if (isset($toEntity)) {
             $this->denormalize($entity, $toEntity);
+            $entity = $toEntity;
         }
 
         $errors = $this->validate($entity);
@@ -189,6 +202,11 @@ abstract class RestService
     public function setSerializer($serializer)
     {
         $this->serializer = $serializer;
+    }
+
+    public function setFilter($filter)
+    {
+        $this->filter = $filter;
     }
 
     public function setValidator($validator)
