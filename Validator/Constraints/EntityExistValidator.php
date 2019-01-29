@@ -24,6 +24,10 @@ class EntityExistValidator extends ConstraintValidator
      */
     public function validate($value, Constraint $constraint)
     {
+        if ($value === null) {
+            return;
+        }
+
         $valueClass = $this->manager->getClassMetadata(get_class($value))->name;
         $repository = $this->manager->getRepository($valueClass);
 
