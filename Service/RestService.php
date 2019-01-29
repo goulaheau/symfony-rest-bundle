@@ -122,9 +122,7 @@ abstract class RestService
             $entity = $this->denormalize($entity);
         }
 
-        $this->filter->filterEntity($entity);
-
-        $errors = $this->validate($entity);
+        $errors = $this->filterAndValidate($entity);
 
         if ($errors) {
             throw new RestEntityValidationException($errors);
@@ -162,7 +160,7 @@ abstract class RestService
             $entity = $toEntity;
         }
 
-        $errors = $this->validate($entity);
+        $errors = $this->filterAndValidate($entity);
 
         if ($errors) {
             throw new RestEntityValidationException($errors);
@@ -217,6 +215,18 @@ abstract class RestService
     public function setManager($manager)
     {
         $this->manager = $manager;
+    }
+
+    protected function filterAndValidate($entity)
+    {
+        return $this->filter($entity)->validate($entity);
+    }
+
+    protected function filter($entity)
+    {
+        $this->filter->filterEntity($entity);
+
+        return $this;
     }
 
     /**
