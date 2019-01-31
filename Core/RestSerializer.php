@@ -4,6 +4,7 @@ namespace Goulaheau\RestBundle\Core;
 
 use Goulaheau\RestBundle\Core\RestParams\Method;
 use Goulaheau\RestBundle\Entity\RestEntity;
+use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -14,9 +15,9 @@ class RestSerializer
      */
     protected $serializer;
 
-    protected $denormalizeContext = ['groups' => 'editable'];
+    protected $denormalizeContext = [AbstractObjectNormalizer::GROUPS => 'editable'];
 
-    protected $normalizeContext = ['groups' => 'readable'];
+    protected $normalizeContext = [AbstractObjectNormalizer::GROUPS => 'readable'];
 
     public function __construct(SerializerInterface $serializer)
     {
@@ -69,7 +70,11 @@ class RestSerializer
                 continue;
             }
 
-            $dataNormalized[$index] = $this->mergeEntityMethods($entity, $dataNormalized[$index], $entityMethods);
+            $dataNormalized[$index] = $this->mergeEntityMethods(
+                $entity,
+                $dataNormalized[$index],
+                $entityMethods
+            );
         }
 
         return $dataNormalized;
@@ -82,8 +87,12 @@ class RestSerializer
      *
      * @return array
      */
-    protected function mergeEntityMethods($entity, $entityNormalized, $entityMethods, $key = '_entityMethods')
-    {
+    protected function mergeEntityMethods(
+        $entity,
+        $entityNormalized,
+        $entityMethods,
+        $key = '_entityMethods'
+    ) {
         if (!is_array($entityNormalized)) {
             return $entityNormalized;
         }
@@ -108,7 +117,11 @@ class RestSerializer
             return $context;
         }
 
-        $context['object_to_populate'] = $toEntity;
+        $context[AbstractObjectNormalizer::OBJECT_TO_POPULATE] = $toEntity;
+
+        if (!isset($context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT])) {
+            $context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT] = true;
+        }
 
         return $context;
     }
@@ -116,16 +129,18 @@ class RestSerializer
     protected function getNormalizeContext($context, $attributes = null, $groups = null)
     {
         if ($attributes) {
-            $context['attributes'] = $attributes;
+            $context[AbstractObjectNormalizer::ATTRIBUTES] = $attributes;
         }
 
         if ($groups) {
-            $context['groups'] = $groups;
+            $context[AbstractObjectNormalizer::GROUPS] = $groups;
         }
 
-        if (!isset($context['circular_reference_handler'])) {
-            $context['circular_reference_handler'] = function (RestEntity $object) {
-                return ['id' => $object->getId()];
+        if (!isset($context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER])) {
+            $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (
+                RestEntity $object
+            ) {
+                return $object->getId();
             };
         }
 
