@@ -2,7 +2,6 @@
 
 namespace Goulaheau\RestBundle\Normalizer;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
@@ -10,20 +9,24 @@ use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactoryInterface;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 
-/**
- * Entity normalizer
- */
 class EntityNormalizer extends ObjectNormalizer
 {
     /**
      * @var ObjectManager
      */
     protected $manager;
+    /**
+     * @var PropertyTypeExtractorInterface
+     */
+    protected $propertyTypeExtractor;
 
     /**
-     * Entity normalizer
-     *
-     * @param ObjectManager              $manager
+     * @var bool
+     */
+    protected $isFirstCall = true;
+
+    /**
+     * @param ObjectManager                       $em
      * @param ClassMetadataFactoryInterface|null  $classMetadataFactory
      * @param NameConverterInterface|null         $nameConverter
      * @param PropertyAccessorInterface|null      $propertyAccessor
@@ -36,9 +39,15 @@ class EntityNormalizer extends ObjectNormalizer
         ?PropertyAccessorInterface $propertyAccessor = null,
         ?PropertyTypeExtractorInterface $propertyTypeExtractor = null
     ) {
-        parent::__construct($classMetadataFactory, $nameConverter, $propertyAccessor, $propertyTypeExtractor);
+        parent::__construct(
+            $classMetadataFactory,
+            $nameConverter,
+            $propertyAccessor,
+            $propertyTypeExtractor
+        );
 
         $this->manager = $manager;
+        $this->propertyTypeExtractor = $propertyTypeExtractor;
     }
 
     /**
@@ -46,8 +55,7 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function supportsDenormalization($data, $type, $format = null)
     {
-        return strpos($type, 'App\\Entity\\') === 0 &&
-            (is_numeric($data) || is_string($data) || $this->isAnArrayOfIds($data));
+        return true;
     }
 
     /**
@@ -55,45 +63,57 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        $class = str_replace('[]', '', $class);
-
-        if (!is_array($data)) {
-            return $this->manager->find($class, $data) ?? new $class();
+        if ($this->isFirstCall) {
+            $this->isFirstCall = false;
+            return parent::denormalize($data, $class, $format, $context);
         }
 
-        $entities = new ArrayCollection();
-
-        foreach ($data as $id) {
-            $entity = $this->manager->find($class, $id);
-
-            if ($entity) {
-                $entities[] = $entity;
+        if ($class === 'DateTime' && is_string($data)) {
+            return trim($data) === '' ? null : \DateTime::createFromFormat('d/m/Y', $data);
+        } elseif (
+            strpos($class, 'App\\Entity\\') === 0 &&
+            strpos($class, '[]') === false &&
+            (is_numeric($data) || is_string($data) || is_array($data))
+        ) {
+            if (is_array($data)) {
+                $data = $data['id'] ?? $data;
             }
-        }
 
-        return $entities;
+            return $this->manager->find($class, $data);
+        } elseif (
+            strpos($class, 'App\\Entity\\') === 0 &&
+            strpos($class, '[]') !== false &&
+            is_array($data)
+        ) {
+            foreach ($data as &$datum) {
+                $datum = $data['id'] ?? $datum;
+            }
+
+            return $this->manager
+                ->getRepository(str_replace('[]', '', $class))
+                ->findBy(['id' => $data]);
+        } else {
+            return parent::denormalize($data, $class, $format, $context);
+        }
     }
 
-    /**
-     * @param $array
-     *
-     * @return bool
-     */
-    protected function isAnArrayOfIds($array)
-    {
-        if (!is_array($array)) {
-            return false;
-        }
+    protected function setAttributeValue(
+        $object,
+        $attribute,
+        $value,
+        $format = null,
+        array $context = []
+    ) {
+        $types = $this->propertyTypeExtractor->getTypes(get_class($object), $attribute);
 
-        $i = 0;
-        foreach ($array as $key => $value) {
-            if ($i !== $key || !is_int($value)) {
-                return false;
+        if ($types) {
+            foreach ($types as $type) {
+                if ($type->isNullable() && is_string($value) && trim($value) === '') {
+                    $value = null;
+                }
             }
-
-            ++$i;
         }
 
-        return true;
+        parent::setAttributeValue($object, $attribute, $value);
     }
 }
