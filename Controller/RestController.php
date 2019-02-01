@@ -96,7 +96,7 @@ abstract class RestController extends AbstractController
             return $this->exceptionHandler($exception);
         }
 
-        return $this->json($entity, Response::HTTP_OK);
+        return $this->json($entity, Response::HTTP_CREATED);
     }
 
     /**
