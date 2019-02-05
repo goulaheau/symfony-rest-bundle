@@ -70,11 +70,7 @@ abstract class RestService
     public function search(RestParams $restParams, $returnAll = false)
     {
         if ($restParams->getRepositoryMethod()) {
-            if ($returnAll) {
-                $restParams->setPager(null);
-            }
-
-            return $this->callRepositoryMethod($restParams);
+            return $this->callRepositoryMethod($restParams, $returnAll);
         }
 
         return $this->repository->search(
@@ -187,16 +183,23 @@ abstract class RestService
     }
 
     /**
-     * @param RestParams        $restParams
-     * @param RestParams\Method $repositoryMethod
+     * @param RestParams $restParams
+     * @param bool       $returnAll
      *
      * @return mixed
      */
-    public function callRepositoryMethod($restParams)
+    public function callRepositoryMethod($restParams, $returnAll = false)
     {
         $repositoryMethod = $restParams->getRepositoryMethod();
 
-        return $this->repository->{$repositoryMethod->getName()}($restParams, ...$repositoryMethod->getParams());
+        return $this->repository->{$repositoryMethod->getName()}(
+            $restParams->getConditions(),
+            $restParams->getSorts(),
+            $restParams->getJoins(),
+            $returnAll ? null : $restParams->getPager(),
+            $restParams->getMode(),
+            ...$repositoryMethod->getParams()
+        );
     }
 
     public function setSerializer($serializer)

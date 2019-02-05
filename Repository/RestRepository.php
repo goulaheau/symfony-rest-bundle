@@ -4,7 +4,6 @@ namespace Goulaheau\RestBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Common\Persistence\ManagerRegistry;
-use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Goulaheau\RestBundle\Core\RestParams\Condition;
 use Goulaheau\RestBundle\Core\RestParams\Join;
@@ -40,6 +39,55 @@ abstract class RestRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param Condition[]         $conditions
+     * @param Sort[]              $sorts
+     * @param Join[]              $joins
+     * @param Pager               $pager
+     * @param string              $mode
+     * @param array | Condition[] $mandatoryConditions
+     *
+     * @return mixed
+     */
+    public function searchBy(
+        $conditions = [],
+        $sorts = [],
+        $joins = [],
+        $pager = null,
+        $mode = 'and',
+        $mandatoryConditions = []
+    ) {
+        $queryBuilder = $this->createQueryBuilder('o')->select('o');
+
+        $this->queryBuilderMandatoryAndConditions($queryBuilder, $conditions, $mandatoryConditions, $mode);
+        $this->queryBuilderSorts($queryBuilder, $sorts);
+        $this->queryBuilderJoins($queryBuilder, $joins);
+        $this->queryBuilderPager($queryBuilder, $pager);
+
+        return $queryBuilder->getQuery()->getResult();
+    }
+
+    /**
+     * @param QueryBuilder        $queryBuilder
+     * @param Condition[]         $conditions
+     * @param array | Condition[] $mandatoryConditions
+     * @param string              $mode
+     */
+    protected function queryBuilderMandatoryAndConditions($queryBuilder, $conditions, $mandatoryConditions, $mode)
+    {
+        $mandatoryConditions = $this->arrayToConditions($mandatoryConditions);
+
+        $predicates = $this->getPredicates($queryBuilder, $conditions);
+        $mandatoryPredicates = $this->getPredicates($queryBuilder, $mandatoryConditions);
+
+        $queryBuilder->where(
+            $queryBuilder->expr()->andX($queryBuilder->expr()->{"{$mode}X"}(...$predicates), ...$mandatoryPredicates)
+        );
+
+        $this->queryBuilderParameters($queryBuilder, $conditions);
+        $this->queryBuilderParameters($queryBuilder, $mandatoryConditions);
+    }
+
+    /**
      * @param QueryBuilder $queryBuilder
      * @param Condition[]  $conditions
      * @param string       $mode
@@ -72,7 +120,7 @@ abstract class RestRepository extends ServiceEntityRepository
 
     /**
      * @param QueryBuilder $queryBuilder
-     * @param Condition[] $conditions
+     * @param Condition[]  $conditions
      */
     protected function queryBuilderParameters($queryBuilder, $conditions)
     {
@@ -120,5 +168,30 @@ abstract class RestRepository extends ServiceEntityRepository
             $queryBuilder->setMaxResults($pager->getLimit());
             $queryBuilder->setFirstResult($pager->getOffset());
         }
+    }
+
+    /**
+     * @param array | Condition[] $conditions
+     *
+     * @return array
+     */
+    protected function arrayToConditions($conditions)
+    {
+        $ret = [];
+
+        foreach ($conditions as $key => $value) {
+            if ($value instanceof Condition) {
+                $ret[] = $value;
+                continue;
+            }
+
+            $propertyOperator = explode('-', $key);
+
+            if (in_array(count($propertyOperator), [1, 2])) {
+                $ret[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null);
+            }
+        }
+
+        return $ret;
     }
 }
