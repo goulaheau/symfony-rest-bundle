@@ -40,7 +40,7 @@ class Condition
      */
     public function __construct($property = null, $value = null, $operator = null, $fromExpression = false)
     {
-        if (!$property || !$value) {
+        if (!$property) {
             return;
         }
 
