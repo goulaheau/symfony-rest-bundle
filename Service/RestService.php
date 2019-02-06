@@ -126,7 +126,6 @@ abstract class RestService
 
         $this->manager->persist($entity);
         $this->manager->flush();
-        $this->manager->refresh($entity);
 
         return $entity;
     }
@@ -164,7 +163,6 @@ abstract class RestService
         }
 
         $this->manager->flush();
-        $this->manager->refresh($entity);
 
         return $entity;
     }
