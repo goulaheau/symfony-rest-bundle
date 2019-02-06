@@ -47,7 +47,7 @@ class Expression
                 $propertyOperator = explode('-', $key);
 
                 if (in_array(count($propertyOperator), [1, 2])) {
-                    $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null);
+                    $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null, true);
                 }
             } else {
                 $mode = $key === '_a' ? 'and' : 'or';

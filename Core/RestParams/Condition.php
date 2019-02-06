@@ -28,12 +28,17 @@ class Condition
     protected $parameter;
 
     /**
+     * @var bool
+     */
+    protected $fromExpression;
+
+    /**
      * Sort constructor.
      *
      * @param string|null $property
      * @param string|null $order
      */
-    public function __construct($property = null, $value = null, $operator = null)
+    public function __construct($property = null, $value = null, $operator = null, $fromExpression = false)
     {
         if (!$property || !$value) {
             return;
@@ -49,6 +54,7 @@ class Condition
         $this->setOperator($operator);
         $this->setValue($value);
         $this->setParameter();
+        $this->setFromExpression($fromExpression);
     }
 
     /**
@@ -66,7 +72,7 @@ class Condition
      */
     public function setProperty($property)
     {
-        if (!RestParams::hasPrefix($property)) {
+        if (!$this->fromExpression && !RestParams::hasPrefix($property)) {
             $property = "o.$property";
         }
 
@@ -131,6 +137,26 @@ class Condition
     public function setParameter($parameter = null)
     {
         $this->parameter = $parameter ?? self::generateRandomString();
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isFromExpression()
+    {
+        return $this->fromExpression;
+    }
+
+    /**
+     * @param bool $fromExpression
+     *
+     * @return self
+     */
+    public function setFromExpression($fromExpression)
+    {
+        $this->fromExpression = $fromExpression;
 
         return $this;
     }

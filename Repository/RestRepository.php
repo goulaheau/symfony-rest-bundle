@@ -49,8 +49,14 @@ abstract class RestRepository extends ServiceEntityRepository
      *
      * @return mixed
      */
-    public function searchBy($conditions = [], $sorts = [], $joins = [], $pager = null, $mode = 'and', $expression = null)
-    {
+    public function searchBy(
+        $conditions = [],
+        $sorts = [],
+        $joins = [],
+        $pager = null,
+        $mode = 'and',
+        $expression = null
+    ) {
         if (!$expression) {
             return $this->search($conditions, $sorts, $joins, $pager, $mode);
         }
@@ -73,12 +79,10 @@ abstract class RestRepository extends ServiceEntityRepository
      */
     protected function queryBuilderExpressionAndConditions($queryBuilder, $conditions, $expression, $mode)
     {
-        if (!($expression instanceof Expression)) {
-            $expression = new Expression($expression);
-        }
+        $expression = $expression instanceof Expression ? $expression : new Expression($expression);
 
         $conditionsPredicates = $this->getPredicates($queryBuilder, $conditions);
-        $expressionPredicate  = $expression->getPredicate($queryBuilder);
+        $expressionPredicate = $expression->getPredicate($queryBuilder);
 
         $queryBuilder->where(
             $queryBuilder
@@ -87,18 +91,7 @@ abstract class RestRepository extends ServiceEntityRepository
         );
 
         $this->queryBuilderParameters($queryBuilder, $conditions);
-        $this->queryBuilderExpresionParameters($queryBuilder, $expression);
-    }
-
-    /**
-     * @param QueryBuilder $queryBuilder
-     * @param Expression   $expression
-     *
-     * @return array
-     */
-    protected function getExpressionPredicate($queryBuilder, $expression)
-    {
-        return $expression->getPredicate($queryBuilder);
+        $this->queryBuilderExpressionParameters($queryBuilder, $expression);
     }
 
     /**
@@ -136,12 +129,12 @@ abstract class RestRepository extends ServiceEntityRepository
      * @param QueryBuilder $queryBuilder
      * @param Expression   $expression
      */
-    protected function queryBuilderExpresionParameters($queryBuilder, $expression)
+    protected function queryBuilderExpressionParameters($queryBuilder, $expression)
     {
         $this->queryBuilderParameters($queryBuilder, $expression->getConditions());
 
         foreach ($expression->getExpressions() as $expression) {
-            $this->queryBuilderExpresionParameters($queryBuilder, $expression);
+            $this->queryBuilderExpressionParameters($queryBuilder, $expression);
         }
     }
 
@@ -164,9 +157,9 @@ abstract class RestRepository extends ServiceEntityRepository
     {
         foreach ($sorts as $sort) {
             $property = $sort->getProperty();
-            $order    = $sort->getOrder();
+            $order = $sort->getOrder();
 
-            $queryBuilder->orderBy($property, $order);
+            $queryBuilder->addOrderBy($property, $order);
         }
     }
 
@@ -178,8 +171,8 @@ abstract class RestRepository extends ServiceEntityRepository
     {
         foreach ($joins as $join) {
             $joinFunction = $join->getType() . 'Join';
-            $path         = $join->getPath();
-            $name         = $join->getName();
+            $path = $join->getPath();
+            $name = $join->getName();
 
             $queryBuilder->$joinFunction($path, $name);
         }
