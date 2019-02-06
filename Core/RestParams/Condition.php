@@ -50,11 +50,11 @@ class Condition
 
         $property = str_replace('_', '.', $property);
 
+        $this->setFromExpression($fromExpression);
         $this->setProperty($property);
         $this->setOperator($operator);
         $this->setValue($value);
         $this->setParameter();
-        $this->setFromExpression($fromExpression);
     }
 
     /**
