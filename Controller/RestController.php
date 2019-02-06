@@ -142,7 +142,10 @@ abstract class RestController extends AbstractController
 
     /**
      * @param \Exception $exception
+     *
      * @return JsonResponse
+     *
+     * @throws \Exception
      */
     protected function exceptionHandler($exception)
     {
@@ -151,6 +154,7 @@ abstract class RestController extends AbstractController
                 $this->logger->notice($exception->getMessage(), $exception->getTrace());
                 return $this->json($exception->getData(), $exception->getStatus());
             default:
+                // TODO: Throw exception only in dev mode.
                 throw $exception;
                 $this->logger->error($exception->getMessage(), $exception->getTrace());
                 return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
