@@ -140,7 +140,9 @@ class RestSerializer
             $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (
                 RestEntity $object
             ) {
-                return $object->getId();
+                return [
+                    'id' => $object->getId()
+                ];
             };
         }
 
