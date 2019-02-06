@@ -145,7 +145,9 @@ abstract class RestRepository extends ServiceEntityRepository
     protected function queryBuilderParameters($queryBuilder, $conditions)
     {
         foreach ($conditions as $condition) {
-            $queryBuilder->setParameter($condition->getParameter(), $condition->getValue());
+            if (!in_array($condition->getOperator(), ['isNull', 'isNotNull'])) {
+                $queryBuilder->setParameter($condition->getParameter(), $condition->getValue());
+            }
         }
     }
 

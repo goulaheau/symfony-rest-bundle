@@ -50,10 +50,9 @@ class Expression
                     $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null, true);
                 }
             } else {
-                $mode = $key === '_a' ? 'and' : 'or';
                 $expressionData = $this->arrayToExpression($value);
                 $expressions[] = (new Expression())
-                    ->setMode($expressionData['mode'])
+                    ->setMode($key === '_a' ? 'and' : 'or')
                     ->setConditions($expressionData['conditions'])
                     ->setExpressions($expressionData['expressions']);
             }
