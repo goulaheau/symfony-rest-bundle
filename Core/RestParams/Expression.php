@@ -46,7 +46,7 @@ class Expression
             if (!in_array($key, ['_a', '_o'], true)) {
                 $propertyOperator = explode('-', $key);
 
-                if (!in_array(count($propertyOperator), [1, 2])) {
+                if (in_array(count($propertyOperator), [1, 2])) {
                     $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null);
                 }
             } else {
