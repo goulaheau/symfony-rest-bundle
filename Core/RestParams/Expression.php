@@ -47,7 +47,13 @@ class Expression
                 $propertyOperator = explode('-', $key);
 
                 if (in_array(count($propertyOperator), [1, 2])) {
-                    $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null, true);
+                    if (is_array($value)) {
+                        foreach ($value as $v) {
+                            $conditions[] = new Condition($propertyOperator[0], $v, $propertyOperator[1] ?? null, true);
+                        }
+                    } else {
+                        $conditions[] = new Condition($propertyOperator[0], $value, $propertyOperator[1] ?? null, true);
+                    }
                 }
             } else {
                 $expressionData = $this->arrayToExpression($value);
