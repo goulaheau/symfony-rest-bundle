@@ -50,15 +50,13 @@ abstract class RestService
     protected $queryParams;
 
     /**
-     * RestService constructor.
-     *
-     * @param string         $entityClass
      * @param RestRepository $repository
+     * @param string         $entityClass
      */
-    public function __construct(string $entityClass, RestRepository $repository)
+    public function __construct(RestRepository $repository, $entityClass)
     {
-        $this->entityClass = $entityClass;
         $this->repository = $repository;
+        $this->entityClass = $entityClass;
     }
 
     /**
