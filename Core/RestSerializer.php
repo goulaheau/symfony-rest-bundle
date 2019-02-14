@@ -37,7 +37,7 @@ class RestSerializer
         $context = $this->getDenormalizeContext($this->denormalizeContext, $toEntity);
 
         if ($factory) {
-            $entityClass = $factory($data);
+            $entityClass = $entityClass::$factory($data);
         }
 
         return $this->serializer->denormalize($data, $entityClass, null, $context);
