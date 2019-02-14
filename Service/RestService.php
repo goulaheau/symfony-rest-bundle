@@ -15,14 +15,19 @@ use Goulaheau\RestBundle\Repository\RestRepository;
 abstract class RestService
 {
     /**
+     * @var RestRepository
+     */
+    protected $repository;
+
+    /**
      * @var string
      */
     protected $entityClass;
 
     /**
-     * @var RestRepository
+     * @var callable | null
      */
-    protected $repository;
+    protected $factory;
 
     /**
      * @var RestSerializer
@@ -52,11 +57,13 @@ abstract class RestService
     /**
      * @param RestRepository $repository
      * @param string         $entityClass
+     * @param callable       $factory
      */
-    public function __construct(RestRepository $repository, $entityClass)
+    public function __construct(RestRepository $repository, $entityClass, $factory = null)
     {
         $this->repository = $repository;
         $this->entityClass = $entityClass;
+        $this->factory = $factory;
     }
 
     /**
@@ -248,6 +255,6 @@ abstract class RestService
      */
     protected function denormalize($data, $toEntity = null)
     {
-        return $this->serializer->denormalize($data, $this->entityClass, $toEntity);
+        return $this->serializer->denormalize($data, $this->entityClass, $this->factory, $toEntity);
     }
 }

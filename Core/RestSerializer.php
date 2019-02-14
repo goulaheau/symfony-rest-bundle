@@ -25,15 +25,20 @@ class RestSerializer
     }
 
     /**
-     * @param        $data
-     * @param string $entityClass
-     * @param null   $toEntity
+     * @param mixed           $data
+     * @param string          $entityClass
+     * @param callable | null $factory
+     * @param null            $toEntity
      *
      * @return object
      */
-    public function denormalize($data, $entityClass, $toEntity = null)
+    public function denormalize($data, $entityClass, $factory, $toEntity = null)
     {
         $context = $this->getDenormalizeContext($this->denormalizeContext, $toEntity);
+
+        if ($factory) {
+            $entityClass = $factory($data);
+        }
 
         return $this->serializer->denormalize($data, $entityClass, null, $context);
     }
@@ -70,11 +75,7 @@ class RestSerializer
                 continue;
             }
 
-            $dataNormalized[$index] = $this->mergeEntityMethods(
-                $entity,
-                $dataNormalized[$index],
-                $entityMethods
-            );
+            $dataNormalized[$index] = $this->mergeEntityMethods($entity, $dataNormalized[$index], $entityMethods);
         }
 
         return $dataNormalized;
@@ -87,12 +88,8 @@ class RestSerializer
      *
      * @return array
      */
-    protected function mergeEntityMethods(
-        $entity,
-        $entityNormalized,
-        $entityMethods,
-        $key = '_entityMethods'
-    ) {
+    protected function mergeEntityMethods($entity, $entityNormalized, $entityMethods, $key = '_entityMethods')
+    {
         if (!is_array($entityNormalized)) {
             return $entityNormalized;
         }
@@ -137,11 +134,9 @@ class RestSerializer
         }
 
         if (!isset($context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER])) {
-            $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (
-                RestEntity $object
-            ) {
+            $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (RestEntity $object) {
                 return [
-                    'id' => $object->getId()
+                    'id' => $object->getId(),
                 ];
             };
         }
