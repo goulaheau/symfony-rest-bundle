@@ -110,15 +110,15 @@ class RestSerializer
 
     protected function getDenormalizeContext($context, $toEntity = null)
     {
+        if (!isset($context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT])) {
+            $context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT] = true;
+        }
+
         if (!$toEntity) {
             return $context;
         }
 
         $context[AbstractObjectNormalizer::OBJECT_TO_POPULATE] = $toEntity;
-
-        if (!isset($context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT])) {
-            $context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT] = true;
-        }
 
         return $context;
     }
