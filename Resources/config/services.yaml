@@ -12,9 +12,6 @@ services:
     goulaheau.rest.validator: { class: Goulaheau\RestBundle\Core\RestValidator }
 
     # Normalizers
-    Symfony\Component\Serializer\Normalizer\DateTimeNormalizer:
-        tags: [serializer.normalizer]
-
     Goulaheau\RestBundle\Normalizer\EntityNormalizer:
         tags: [serializer.normalizer]
 
