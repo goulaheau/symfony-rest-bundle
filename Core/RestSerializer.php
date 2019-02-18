@@ -32,7 +32,7 @@ class RestSerializer
      *
      * @return object
      */
-    public function denormalize($data, $entityClass, $factory, $toEntity = null)
+    public function denormalize($data, $entityClass, $factory = null, $toEntity = null)
     {
         $context = $this->getDenormalizeContext($this->denormalizeContext, $toEntity);
 

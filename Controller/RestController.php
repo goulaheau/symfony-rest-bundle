@@ -188,16 +188,6 @@ abstract class RestController extends AbstractController
     }
 
     /**
-     * @param      $data
-     * @param null $toEntity
-     * @return object
-     */
-    protected function denormalize($data, $toEntity = null)
-    {
-        return $this->serializer->denormalize($data, $this->entityClass, $toEntity);
-    }
-
-    /**
      * @param $data
      * @return array|bool|float|int|mixed|string
      */
