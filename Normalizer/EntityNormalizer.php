@@ -24,7 +24,7 @@ class EntityNormalizer extends ObjectNormalizer
     /**
      * @var bool
      */
-    protected $isFirstCall = true;
+    public $isFirstCall = true;
 
     /**
      * @param ObjectManager                       $manager
