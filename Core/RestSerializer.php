@@ -4,6 +4,7 @@ namespace Goulaheau\RestBundle\Core;
 
 use Goulaheau\RestBundle\Core\RestParams\Method;
 use Goulaheau\RestBundle\Entity\RestEntity;
+use Goulaheau\RestBundle\Normalizer\EntityNormalizer;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -40,7 +41,12 @@ class RestSerializer
             $entityClass = $entityClass::$factory($data);
         }
 
-        return $this->serializer->denormalize($data, $entityClass, null, $context);
+        $entity = $this->serializer->denormalize($data, $entityClass, null, $context);
+
+        // TODO: Ameliorer ce mechanisme
+        EntityNormalizer::$isFirstCall = true;
+
+        return $entity;
     }
 
     /**

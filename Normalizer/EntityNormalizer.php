@@ -24,7 +24,7 @@ class EntityNormalizer extends ObjectNormalizer
     /**
      * @var bool
      */
-    public $isFirstCall = true;
+    public static $isFirstCall = true;
 
     /**
      * @param ObjectManager                       $manager
@@ -64,8 +64,8 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        if ($this->isFirstCall) {
-            $this->isFirstCall = false;
+        if (self::$isFirstCall) {
+            self::$isFirstCall = false;
             return parent::denormalize($data, $class, $format, $context);
         }
 
