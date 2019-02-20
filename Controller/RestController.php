@@ -26,24 +26,24 @@ abstract class RestController extends AbstractController
     protected $logger;
 
     /**
-     * @var string
-     */
-    protected $entityClass;
-
-    /**
      * @var RestService
      */
     protected $service;
+
+    /**
+     * @var string
+     */
+    protected $entityClass;
 
     /**
      * @var RestParams
      */
     protected $restParams;
 
-    public function __construct($entityClass, $service)
+    public function __construct($service, $entityClass)
     {
-        $this->entityClass = $entityClass;
         $this->service = $service;
+        $this->entityClass = $entityClass;
     }
 
     /**
