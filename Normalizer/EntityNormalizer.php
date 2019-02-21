@@ -15,6 +15,7 @@ class EntityNormalizer extends ObjectNormalizer
      * @var ObjectManager
      */
     protected $manager;
+
     /**
      * @var PropertyTypeExtractorInterface
      */
@@ -23,10 +24,10 @@ class EntityNormalizer extends ObjectNormalizer
     /**
      * @var bool
      */
-    protected $isFirstCall = true;
+    public static $isFirstCall = true;
 
     /**
-     * @param ObjectManager                       $em
+     * @param ObjectManager                       $manager
      * @param ClassMetadataFactoryInterface|null  $classMetadataFactory
      * @param NameConverterInterface|null         $nameConverter
      * @param PropertyAccessorInterface|null      $propertyAccessor
@@ -63,8 +64,8 @@ class EntityNormalizer extends ObjectNormalizer
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        if ($this->isFirstCall) {
-            $this->isFirstCall = false;
+        if (self::$isFirstCall) {
+            self::$isFirstCall = false;
             return parent::denormalize($data, $class, $format, $context);
         }
 
@@ -92,9 +93,9 @@ class EntityNormalizer extends ObjectNormalizer
             return $this->manager
                 ->getRepository(str_replace('[]', '', $class))
                 ->findBy(['id' => $data]);
-        } else {
-            return parent::denormalize($data, $class, $format, $context);
         }
+
+        return parent::denormalize($data, $class, $format, $context);
     }
 
     protected function setAttributeValue(

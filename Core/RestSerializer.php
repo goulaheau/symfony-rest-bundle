@@ -4,6 +4,7 @@ namespace Goulaheau\RestBundle\Core;
 
 use Goulaheau\RestBundle\Core\RestParams\Method;
 use Goulaheau\RestBundle\Entity\RestEntity;
+use Goulaheau\RestBundle\Normalizer\EntityNormalizer;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -32,7 +33,7 @@ class RestSerializer
      *
      * @return object
      */
-    public function denormalize($data, $entityClass, $factory, $toEntity = null)
+    public function denormalize($data, $entityClass, $factory = null, $toEntity = null)
     {
         $context = $this->getDenormalizeContext($this->denormalizeContext, $toEntity);
 
@@ -40,7 +41,12 @@ class RestSerializer
             $entityClass = $entityClass::$factory($data);
         }
 
-        return $this->serializer->denormalize($data, $entityClass, null, $context);
+        $entity = $this->serializer->denormalize($data, $entityClass, null, $context);
+
+        // TODO: Ameliorer ce mechanisme
+        EntityNormalizer::$isFirstCall = true;
+
+        return $entity;
     }
 
     /**
@@ -110,15 +116,15 @@ class RestSerializer
 
     protected function getDenormalizeContext($context, $toEntity = null)
     {
+        if (!isset($context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT])) {
+            $context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT] = true;
+        }
+
         if (!$toEntity) {
             return $context;
         }
 
         $context[AbstractObjectNormalizer::OBJECT_TO_POPULATE] = $toEntity;
-
-        if (!isset($context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT])) {
-            $context[AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT] = true;
-        }
 
         return $context;
     }

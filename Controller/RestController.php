@@ -26,24 +26,24 @@ abstract class RestController extends AbstractController
     protected $logger;
 
     /**
-     * @var string
-     */
-    protected $entityClass;
-
-    /**
      * @var RestService
      */
     protected $service;
+
+    /**
+     * @var string
+     */
+    protected $entityClass;
 
     /**
      * @var RestParams
      */
     protected $restParams;
 
-    public function __construct($entityClass, $service)
+    public function __construct($service, $entityClass)
     {
-        $this->entityClass = $entityClass;
         $this->service = $service;
+        $this->entityClass = $entityClass;
     }
 
     /**
@@ -62,7 +62,7 @@ abstract class RestController extends AbstractController
             return $this->exceptionHandler($exception);
         }
 
-        return $this->json($entities, 200, $headers);
+        return $this->json($entities, Response::HTTP_OK, $headers);
     }
 
     /**
@@ -79,7 +79,7 @@ abstract class RestController extends AbstractController
             return $this->exceptionHandler($exception);
         }
 
-        return $this->json($entity, Response::HTTP_OK);
+        return $this->json($entity);
     }
 
     /**
@@ -185,16 +185,6 @@ abstract class RestController extends AbstractController
         return in_array($entitiesNumber, [0, $limit], true)
             ? count($this->service->search($this->restParams, true))
             : $offset + $entitiesNumber;
-    }
-
-    /**
-     * @param      $data
-     * @param null $toEntity
-     * @return object
-     */
-    protected function denormalize($data, $toEntity = null)
-    {
-        return $this->serializer->denormalize($data, $this->entityClass, $toEntity);
     }
 
     /**

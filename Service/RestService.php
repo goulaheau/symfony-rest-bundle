@@ -157,8 +157,7 @@ abstract class RestService
         }
 
         if (isset($toEntity)) {
-            $this->denormalize($entity, $toEntity);
-            $entity = $toEntity;
+            $entity = $this->denormalize($entity, $toEntity);
         }
 
         $errors = $this->filterAndValidate($entity);
