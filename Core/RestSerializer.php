@@ -134,7 +134,19 @@ class RestSerializer
         }
 
         if (!isset($context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER])) {
-            $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (RestEntity $object) {
+            $context[AbstractObjectNormalizer::CIRCULAR_REFERENCE_HANDLER] = function (
+                RestEntity $object,
+                string $format = null,
+                array $context = []
+            ) {
+                if (
+                    isset($context['attributes']) &&
+                    is_array($context['attributes']) &&
+                    count($context['attributes']) > 1
+                ) {
+                    return $this->serializer->normalize($object, null, $context);
+                }
+
                 return [
                     'id' => $object->getId(),
                 ];
