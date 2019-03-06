@@ -100,16 +100,40 @@ class RestSerializer
             return $entityNormalized;
         }
 
-        $methodsData = [];
-
         foreach ($entityMethods as $entityMethod) {
             $name = $entityMethod->getName();
             $params = $entityMethod->getParams();
+            $subEntities = $entityMethod->getSubEntities();
 
-            $methodsData[$name] = $entity->$name(...$params);
+            foreach ($subEntities as $subEntity) {
+                $entity = $entity->{"get${subEntity}"}();
+            }
+
+            if (count($subEntities) === 0) {
+                if (!isset($entityNormalized[$key])) {
+                    $entityNormalized[$key] = [];
+                }
+
+                $entityNormalized[$key][$name] = $entity->$name(...$params);
+                continue;
+            }
+
+            foreach ($subEntities as $i => $subEntity) {
+                if (!isset($entityNormalized[$subEntity])) {
+                    $entityNormalized[$subEntity] = [];
+                }
+
+                $subEntityNormalized = &$entityNormalized[$subEntity];
+
+                if ($i === count($subEntities) - 1) {
+                    if (!isset($subEntityNormalized[$key])) {
+                        $subEntityNormalized[$key] = [];
+                    }
+
+                    $subEntityNormalized[$key][$name] = $entity->$name(...$params);
+                }
+            }
         }
-
-        $entityNormalized[$key] = $methodsData;
 
         return $entityNormalized;
     }
@@ -153,9 +177,7 @@ class RestSerializer
                     return $this->serializer->normalize($object, null, $context);
                 }
 
-                return [
-                    'id' => $object->getId(),
-                ];
+                return ['id' => $object->getId()];
             };
         }
 
