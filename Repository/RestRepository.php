@@ -150,7 +150,7 @@ abstract class RestRepository extends ServiceEntityRepository
                     $condition->getParameter(),
                     $queryBuilder->getEntityManager()->getClassMetadata($condition->getValue())
                 );
-            } else {
+            } elseif (!in_array($condition->getOperator(), ['isNull', 'isNotNull'])) {
                 $queryBuilder->setParameter($condition->getParameter(), $condition->getValue());
             }
         }
