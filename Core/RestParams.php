@@ -81,14 +81,19 @@ class RestParams
                 case '_em':
                     $methods = explode(',', $value);
                     $params = isset($queryParams['_emp']) && is_array($queryParams['_emp']) ? $queryParams['_emp'] : [];
+                    $attributes =
+                        isset($queryParams['_ema']) && is_array($queryParams['_ema']) ? $queryParams['_ema'] : [];
 
                     foreach ($methods as $index => $name) {
-                        $this->addEntityMethod(new Method($name, $params[$index] ?? null));
+                        $this->addEntityMethod(new Method($name, $params[$index] ?? null, $attributes[$index] ?? null));
                     }
 
                     break;
 
                 case '_emp':
+                    break;
+
+                case '_ema':
                     break;
 
                 case '_rm':

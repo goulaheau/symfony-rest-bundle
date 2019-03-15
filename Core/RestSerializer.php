@@ -104,6 +104,7 @@ class RestSerializer
             $methodEntity = $entity;
             $name = $entityMethod->getName();
             $params = $entityMethod->getParams();
+            $attributes = $entityMethod->getAttributes();
             $subEntities = $entityMethod->getSubEntities();
 
             foreach ($subEntities as $subEntity) {
@@ -115,7 +116,17 @@ class RestSerializer
                     $entityNormalized[$key] = [];
                 }
 
-                $entityNormalized[$key][$name] = $methodEntity->$name(...$params);
+                $data = $methodEntity->$name(...$params);
+
+                if ($attributes) {
+                    $data = $this->serializer->normalize(
+                        $data,
+                        null,
+                        $this->getNormalizeContext($this->normalizeContext, $attributes)
+                    );
+                }
+
+                $entityNormalized[$key][$name] = $data;
                 continue;
             }
 
@@ -131,7 +142,17 @@ class RestSerializer
                         $subEntityNormalized[$key] = [];
                     }
 
-                    $subEntityNormalized[$key][$name] = $methodEntity->$name(...$params);
+                    $data = $methodEntity->$name(...$params);
+
+                    if ($attributes) {
+                        $data = $this->serializer->normalize(
+                            $data,
+                            null,
+                            $this->getNormalizeContext($this->normalizeContext, $attributes)
+                        );
+                    }
+
+                    $subEntityNormalized[$key][$name] = $data;
                 }
             }
         }

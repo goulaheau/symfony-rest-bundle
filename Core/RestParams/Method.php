@@ -15,11 +15,16 @@ class Method
     protected $params = [];
 
     /**
+     * @var string
+     */
+    protected $attributes;
+
+    /**
      * @var array
      */
     protected $subEntities = [];
 
-    public function __construct($name = null, $params = null)
+    public function __construct($name = null, $params = null, $attributes = null)
     {
         if (!$name) {
             return;
@@ -34,6 +39,7 @@ class Method
 
         $this->setName($name);
         $this->setParams($params);
+        $this->setAttributes($attributes);
     }
 
     /**
@@ -77,6 +83,41 @@ class Method
     }
 
     /**
+     * @return string
+     */
+    public function getAttributes()
+    {
+        return $this->attributes;
+    }
+
+    /**
+     * @param string $attributes
+     *
+     * @return Method
+     */
+    public function setAttributes($attributes)
+    {
+        if ($attributes === null) {
+            $this->attributes = [];
+
+            return $this;
+        }
+
+        if (is_array($attributes)) {
+            $this->attributes = $attributes;
+
+            return $this;
+        }
+
+        $attributes = explode(',', $attributes);
+        $attributes = $this->relationsToArray($attributes);
+
+        $this->attributes = $attributes;
+
+        return $this;
+    }
+
+    /**
      * @return array
      */
     public function getSubEntities()
@@ -94,5 +135,40 @@ class Method
         $this->subEntities = $subEntities;
 
         return $this;
+    }
+
+    protected function relationsToArray($attributes)
+    {
+        $relations = [];
+
+        foreach ($attributes as $key => $value) {
+            if (!strpos($value, '.')) {
+                continue;
+            }
+
+            $this->dotStringToArray($relations, $value);
+
+            unset($attributes[$key]);
+        }
+
+        $attributes = array_values($attributes);
+
+        return array_merge($attributes, $relations);
+    }
+
+    protected function dotStringToArray(&$array, $value)
+    {
+        $keys = explode('.', $value);
+
+        foreach ($keys as $i => $key) {
+            if ($i === count($keys) - 1) {
+                $array = &$array[];
+                continue;
+            }
+
+            $array = &$array[$key];
+        }
+
+        $array = $keys[count($keys) - 1];
     }
 }
