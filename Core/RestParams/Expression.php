@@ -56,11 +56,21 @@ class Expression
                     }
                 }
             } else {
-                $expressionData = $this->arrayToExpression($value);
-                $expressions[] = (new Expression())
-                    ->setMode($key === '_a' ? 'and' : 'or')
-                    ->setConditions($expressionData['conditions'])
-                    ->setExpressions($expressionData['expressions']);
+                if (isset($value[0])) {
+                    foreach ($value as $v) {
+                        $expressionData = $this->arrayToExpression($v);
+                        $expressions[] = (new Expression())
+                            ->setMode($key === '_a' ? 'and' : 'or')
+                            ->setConditions($expressionData['conditions'])
+                            ->setExpressions($expressionData['expressions']);
+                    }
+                } else {
+                    $expressionData = $this->arrayToExpression($value);
+                    $expressions[] = (new Expression())
+                        ->setMode($key === '_a' ? 'and' : 'or')
+                        ->setConditions($expressionData['conditions'])
+                        ->setExpressions($expressionData['expressions']);
+                }
             }
         }
 
