@@ -12,6 +12,9 @@ services:
     goulaheau.rest.validator: { class: Goulaheau\RestBundle\Core\RestValidator }
 
     # Normalizers
+    Goulaheau\RestBundle\Normalizer\DateTimeNormalizer:
+        tags: [serializer.normalizer]
+
     Goulaheau\RestBundle\Normalizer\EntityNormalizer:
         tags: [serializer.normalizer]
 

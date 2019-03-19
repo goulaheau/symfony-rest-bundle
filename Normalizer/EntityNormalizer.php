@@ -62,6 +62,14 @@ class EntityNormalizer extends ObjectNormalizer
     /**
      * @inheritDoc
      */
+    public function supportsNormalization($data, $format = null)
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
         if (self::$isFirstCall) {
@@ -69,9 +77,7 @@ class EntityNormalizer extends ObjectNormalizer
             return parent::denormalize($data, $class, $format, $context);
         }
 
-        if ($class === 'DateTime' && is_string($data)) {
-            return trim($data) === '' ? null : \DateTime::createFromFormat('d/m/Y', $data);
-        } elseif (
+        if (
             strpos($class, 'App\\Entity\\') === 0 &&
             strpos($class, '[]') === false &&
             (is_numeric($data) || is_string($data) || is_array($data))
