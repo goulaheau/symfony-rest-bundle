@@ -67,6 +67,166 @@ abstract class RestService
     }
 
     /**
+     * @return RestRepository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * @param RestRepository $repository
+     *
+     * @return self
+     */
+    public function setRepository($repository)
+    {
+        $this->repository = $repository;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEntityClass()
+    {
+        return $this->entityClass;
+    }
+
+    /**
+     * @param string $entityClass
+     *
+     * @return self
+     */
+    public function setEntityClass($entityClass)
+    {
+        $this->entityClass = $entityClass;
+
+        return $this;
+    }
+
+    /**
+     * @return callable | null
+     */
+    public function getFactory()
+    {
+        return $this->factory;
+    }
+
+    /**
+     * @param callable | null $factory
+     *
+     * @return self
+     */
+    public function setFactory($factory)
+    {
+        $this->factory = $factory;
+
+        return $this;
+    }
+
+    /**
+     * @return RestSerializer
+     */
+    public function getSerializer()
+    {
+        return $this->serializer;
+    }
+
+    /**
+     * @param RestSerializer $serializer
+     *
+     * @return self
+     */
+    public function setSerializer($serializer)
+    {
+        $this->serializer = $serializer;
+
+        return $this;
+    }
+
+    /**
+     * @return Filter
+     */
+    public function getFilter()
+    {
+        return $this->filter;
+    }
+
+    /**
+     * @param Filter $filter
+     *
+     * @return self
+     */
+    public function setFilter($filter)
+    {
+        $this->filter = $filter;
+
+        return $this;
+    }
+
+    /**
+     * @return RestValidator
+     */
+    public function getValidator()
+    {
+        return $this->validator;
+    }
+
+    /**
+     * @param RestValidator $validator
+     *
+     * @return self
+     */
+    public function setValidator($validator)
+    {
+        $this->validator = $validator;
+
+        return $this;
+    }
+
+    /**
+     * @return ObjectManager
+     */
+    public function getManager()
+    {
+        return $this->manager;
+    }
+
+    /**
+     * @param ObjectManager $manager
+     *
+     * @return self
+     */
+    public function setManager($manager)
+    {
+        $this->manager = $manager;
+
+        return $this;
+    }
+
+    /**
+     * @return RestParams
+     */
+    public function getQueryParams()
+    {
+        return $this->queryParams;
+    }
+
+    /**
+     * @param RestParams $queryParams
+     *
+     * @return self
+     */
+    public function setQueryParams($queryParams)
+    {
+        $this->queryParams = $queryParams;
+
+        return $this;
+    }
+
+    /**
      * @param RestParams $restParams
      * @param bool       $returnAll
      *
@@ -202,26 +362,6 @@ abstract class RestService
             $restParams->getMode(),
             ...$repositoryMethod->getParams()
         );
-    }
-
-    public function setSerializer($serializer)
-    {
-        $this->serializer = $serializer;
-    }
-
-    public function setFilter($filter)
-    {
-        $this->filter = $filter;
-    }
-
-    public function setValidator($validator)
-    {
-        $this->validator = $validator;
-    }
-
-    public function setManager($manager)
-    {
-        $this->manager = $manager;
     }
 
     protected function filterAndValidate($entity)

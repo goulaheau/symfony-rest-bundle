@@ -47,6 +47,106 @@ abstract class RestController extends AbstractController
     }
 
     /**
+     * @return RestSerializer
+     */
+    public function getSerializer()
+    {
+        return $this->serializer;
+    }
+
+    /**
+     * @param RestSerializer $serializer
+     *
+     * @return self
+     */
+    public function setSerializer($serializer)
+    {
+        $this->serializer = $serializer;
+
+        return $this;
+    }
+
+    /**
+     * @return LoggerInterface
+     */
+    public function getLogger()
+    {
+        return $this->logger;
+    }
+
+    /**
+     * @param LoggerInterface $logger
+     *
+     * @return self
+     */
+    public function setLogger($logger)
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
+
+    /**
+     * @return RestService
+     */
+    public function getService()
+    {
+        return $this->service;
+    }
+
+    /**
+     * @param RestService $service
+     *
+     * @return self
+     */
+    public function setService($service)
+    {
+        $this->service = $service;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEntityClass()
+    {
+        return $this->entityClass;
+    }
+
+    /**
+     * @param string $entityClass
+     *
+     * @return self
+     */
+    public function setEntityClass($entityClass)
+    {
+        $this->entityClass = $entityClass;
+
+        return $this;
+    }
+
+    /**
+     * @return RestParams
+     */
+    public function getRestParams()
+    {
+        return $this->restParams;
+    }
+
+    /**
+     * @param RestParams $restParams
+     *
+     * @return self
+     */
+    public function setRestParams($restParams)
+    {
+        $this->restParams = $restParams;
+
+        return $this;
+    }
+
+    /**
      * @Route("", methods={"GET"})
      */
     public function searchEntities(Request $request)
@@ -128,16 +228,6 @@ abstract class RestController extends AbstractController
         }
 
         return $this->json(null, Response::HTTP_NO_CONTENT);
-    }
-
-    public function setSerializer($serializer)
-    {
-        $this->serializer = $serializer;
-    }
-
-    public function setLogger($logger)
-    {
-        $this->logger = $logger;
     }
 
     /**
