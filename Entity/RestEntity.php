@@ -2,6 +2,7 @@
 
 namespace Goulaheau\RestBundle\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -14,23 +15,29 @@ abstract class RestEntity
 {
     /**
      * @var int
+     *
      * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
+     *
      * @Groups({"readable", "editable"})
      */
     protected $id;
 
     /**
-     * @var \DateTime
+     * @var DateTime
+     *
      * @ORM\Column(type="datetime", nullable=true)
+     *
      * @Groups({"readable"})
      */
     protected $createdAt;
 
     /**
-     * @var \DateTime
+     * @var DateTime
+     *
      * @ORM\Column(type="datetime", nullable=true)
+     *
      * @Groups({"readable"})
      */
     protected $updatedAt;
@@ -38,24 +45,25 @@ abstract class RestEntity
     /**
      * @return int
      */
-    public function getId(): ?int
+    public function getId()
     {
         return $this->id;
     }
 
     /**
-     * @return \DateTime
+     * @return DateTime
      */
-    public function getCreatedAt(): ?\DateTime
+    public function getCreatedAt()
     {
         return $this->createdAt;
     }
 
     /**
-     * @param \DateTime $createdAt
-     * @return RestEntity
+     * @param DateTime $createdAt
+     *
+     * @return self
      */
-    public function setCreatedAt(\DateTime $createdAt): self
+    public function setCreatedAt($createdAt)
     {
         $this->createdAt = $createdAt;
 
@@ -63,18 +71,19 @@ abstract class RestEntity
     }
 
     /**
-     * @return \DateTime
+     * @return DateTime
      */
-    public function getUpdatedAt(): ?\DateTime
+    public function getUpdatedAt()
     {
         return $this->updatedAt;
     }
 
     /**
-     * @param \DateTime $updatedAt
-     * @return RestEntity
+     * @param DateTime $updatedAt
+     *
+     * @return self
      */
-    public function setUpdatedAt(\DateTime $updatedAt): self
+    public function setUpdatedAt($updatedAt)
     {
         $this->updatedAt = $updatedAt;
 

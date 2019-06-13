@@ -2,6 +2,7 @@
 
 namespace Goulaheau\RestBundle\Controller;
 
+use Exception;
 use Goulaheau\RestBundle\Exception\RestException;
 use Goulaheau\RestBundle\Service\RestService;
 use Goulaheau\RestBundle\Core\RestParams;
@@ -158,7 +159,7 @@ abstract class RestController extends AbstractController
             $entities = $this->normalize($entities);
 
             $headers = ['X-Rest-Total' => $this->getTotal($entities)];
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
@@ -166,7 +167,7 @@ abstract class RestController extends AbstractController
     }
 
     /**
-     * @Route("/{id}", methods={"GET"}, requirements={"id"="\d+"})
+     * @Route("/{id}", methods={"GET"})
      */
     public function getEntity($id, Request $request)
     {
@@ -175,7 +176,7 @@ abstract class RestController extends AbstractController
 
             $entity = $this->service->get($id);
             $entity = $this->normalize($entity);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
@@ -192,7 +193,7 @@ abstract class RestController extends AbstractController
 
             $entity = $this->service->create($request->request->all());
             $entity = $this->normalize($entity);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
@@ -200,7 +201,7 @@ abstract class RestController extends AbstractController
     }
 
     /**
-     * @Route("/{id}", methods={"PUT"}, requirements={"id"="\d+"})
+     * @Route("/{id}", methods={"PUT"})
      */
     public function updateEntity($id, Request $request)
     {
@@ -209,7 +210,7 @@ abstract class RestController extends AbstractController
 
             $entity = $this->service->update($request->request->all(), $id);
             $entity = $this->normalize($entity);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
@@ -217,13 +218,13 @@ abstract class RestController extends AbstractController
     }
 
     /**
-     * @Route("/{id}", methods={"DELETE"}, requirements={"id"="\d+"})
+     * @Route("/{id}", methods={"DELETE"})
      */
     public function deleteEntity($id)
     {
         try {
             $this->service->delete($id);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             return $this->exceptionHandler($exception);
         }
 
@@ -231,11 +232,11 @@ abstract class RestController extends AbstractController
     }
 
     /**
-     * @param \Exception $exception
+     * @param Exception $exception
      *
      * @return JsonResponse
      *
-     * @throws \Exception
+     * @throws Exception
      */
     protected function exceptionHandler($exception)
     {
