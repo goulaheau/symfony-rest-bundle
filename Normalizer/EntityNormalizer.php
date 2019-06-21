@@ -83,11 +83,7 @@ class EntityNormalizer extends ObjectNormalizer
             (is_numeric($data) || is_string($data) || is_array($data))
         ) {
             if (is_array($data)) {
-                if (!isset($data['id']) || !$data['id']) {
-	                  return parent::denormalize($data, $class, $format, $context);
-                }
-
-                $data = $data['id'];
+                $data = $data['id'] ?? $data;
             }
 
             return $this->manager->find($class, $data);
