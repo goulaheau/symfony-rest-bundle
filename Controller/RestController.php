@@ -251,7 +251,7 @@ abstract class RestController extends AbstractController
 
 	      $this->logger->error($exception->getMessage(), $exception->getTrace());
 
-	      return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+	      return $this->json('ERROR', Response::HTTP_INTERNAL_SERVER_ERROR);
     }
 
     /**
