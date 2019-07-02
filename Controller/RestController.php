@@ -240,16 +240,18 @@ abstract class RestController extends AbstractController
      */
     protected function exceptionHandler($exception)
     {
-        switch (true) {
-            case $exception instanceof RestException:
-                $this->logger->notice($exception->getMessage(), $exception->getTrace());
-                return $this->json($exception->getData(), $exception->getStatus());
-            default:
-                // TODO: Throw exception only in dev mode.
-                throw $exception;
-                $this->logger->error($exception->getMessage(), $exception->getTrace());
-                return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        if ($exception instanceof RestException) {
+            $this->logger->notice($exception->getMessage(), $exception->getTrace());
+
+	          return $this->json($exception->getData(), $exception->getStatus());
+	      }
+
+        // Uncomment the line below to see the exception in the DevTool
+        // throw $exception;
+
+	      $this->logger->error($exception->getMessage(), $exception->getTrace());
+
+	      return $this->json($exception->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
     }
 
     /**
